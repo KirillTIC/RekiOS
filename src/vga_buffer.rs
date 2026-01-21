@@ -1,3 +1,7 @@
+use core::fmt;
+use core::fmt::Write;
+use volatile::Volatile;
+
 const BUFFER_HEIGHT: usize = 25;
 const BUFFER_WIDTH: usize = 80;
 
@@ -45,7 +49,7 @@ struct Char {
 //desribing VGA buffer
 #[repr(transparent)]
 struct VgaBuffer {
-    chars: [[Char; BUFFER_WIDTH]; BUFFER_HEIGHT],
+    chars: [[Volatile<Char>; BUFFER_WIDTH]; BUFFER_HEIGHT],
 }
 
 //desribing writer
@@ -70,10 +74,10 @@ impl Writer {
                 let col = self.column_position;
                 let color_code = self.color_code;
 
-                self.buffer.chars[row][col] = Char {
+                self.buffer.chars[row][col].write(Char {
                     ascii: byte,
                     color_code,
-                };
+                });
                 self.column_position += 1;
             }
         }
@@ -93,6 +97,13 @@ impl Writer {
          * DO*/
     }
 }
+//implement macros !write with formating for our VGA writer
+impl fmt::Write for Writer {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        self.write_string(s);
+        Ok(())
+    }
+}
 
 //TEMP
 pub fn print_something() {
@@ -102,5 +113,5 @@ pub fn print_something() {
         buffer: unsafe { &mut *(0xb8000 as *mut VgaBuffer) },
     };
 
-    writer.write_string("Hello, World!");
+    write!(writer, "The numbers is {} and {}", 10, 122).unwrap();
 }

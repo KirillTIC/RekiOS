@@ -92,9 +92,25 @@ impl Writer {
         }
     }
 
-    pub fn next_line(&mut self) {
-        /*TO
-         * DO*/
+    fn next_line(&mut self) {
+        for row in 1..BUFFER_HEIGHT {
+            for col in 0..BUFFER_WIDTH {
+                let cc = self.buffer.chars[row][col].read();
+                self.buffer.chars[row - 1][col].write(cc);
+            }
+        }
+        self.clear_row(BUFFER_HEIGHT - 1);
+        self.column_position = 0;
+    }
+
+    fn clear_row(&mut self, row: usize) {
+        let blank_char = Char {
+            ascii: b' ',
+            color_code: self.color_code,
+        };
+        for col in 0..BUFFER_WIDTH {
+            self.buffer.chars[row][col].write(blank_char);
+        }
     }
 }
 //implement macros !write with formating for our VGA writer

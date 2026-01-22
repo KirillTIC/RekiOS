@@ -6,6 +6,7 @@ mod vga_buffer;
 #[unsafe(no_mangle)]
 pub extern "C" fn _start() -> ! {
     print_ok!("OS was Init");
+    println_color!(vga_buffer::Color::Pink, "Just test of color output");
     panic!("TODO");
 
     //loop {}

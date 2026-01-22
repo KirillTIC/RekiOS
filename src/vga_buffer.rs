@@ -44,9 +44,9 @@ macro_rules! println_color {
 #[macro_export]
 macro_rules! print_panic {
     ($($arg:tt)*) => {
-        $crate::println_color!($crate::vga_buffer::Color::Red, "[FATAL] ----------------------");
+        $crate::println_color!($crate::vga_buffer::Color::Red, "[FATAL] ------------------------");
         $crate::println_color!($crate::vga_buffer::Color::Yellow, "{}", format_args!($($arg)*));
-        $crate::println_color!($crate::vga_buffer::Color::Red, "------------------------------")
+        $crate::println_color!($crate::vga_buffer::Color::Red, "--------------------------------")
     };
 }
 #[macro_export]

@@ -42,10 +42,10 @@ macro_rules! println_color {
     };
 }
 #[macro_export]
-macro_rules! error {
+macro_rules! print_panic {
     ($($arg:tt)*) => {
         $crate::print_color!($crate::vga_buffer::Color::Red, "[ERROR] ");
-        $crate::println!($($arg)*);
+        $crate::print_color!($crate::vga_buffer::Color::Yellow, "{}", format_args!($($arg)*));
     };
 }
 

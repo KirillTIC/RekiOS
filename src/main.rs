@@ -8,13 +8,13 @@ pub extern "C" fn _start() -> ! {
     println!("Hello, World!");
     panic!("Some panic!!!");
 
-    loop {}
+    //loop {}
 }
 
 use core::panic::PanicInfo;
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    println!("{}", info);
+    error!("{}", info);
     loop {}
 }

@@ -21,6 +21,33 @@ pub fn _print(args: fmt::Arguments) {
     use core::fmt::Write;
     WRITER.lock().write_fmt(args).unwrap();
 }
+#[macro_export]
+macro_rules! print_color {
+    ($color:expr, $($arg:tt)*) => {{
+        use core::fmt::Write;
+        use $crate::vga_buffer::{WRITER, Color, ColorCode};
+        let mut writer = WRITER.lock();
+        let original_color = writer.color_code;
+        writer.color_code = ColorCode::new($color, Color::Black);
+
+        writer.write_fmt(format_args!($($arg)*)).unwrap();
+
+        writer.color_code = original_color;
+    }};
+}
+#[macro_export]
+macro_rules! println_color {
+    ($color:expr, $($arg:tt)*) => {
+        $crate::print_color!($color, "{}\n", format_args!($($arg)*));
+    };
+}
+#[macro_export]
+macro_rules! error {
+    ($($arg:tt)*) => {
+        $crate::print_color!($crate::vga_buffer::Color::Red, "[ERROR] ");
+        $crate::println!($($arg)*);
+    };
+}
 
 //Create global mutable static writer
 lazy_static! {
@@ -57,9 +84,9 @@ pub enum Color {
 //desribing and implement color color code
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(transparent)]
-struct ColorCode(u8);
+pub struct ColorCode(u8);
 impl ColorCode {
-    fn new(foreground: Color, background: Color) -> ColorCode {
+    pub fn new(foreground: Color, background: Color) -> ColorCode {
         ColorCode((background as u8) << 4 | (foreground as u8))
     }
 }
@@ -81,7 +108,7 @@ struct VgaBuffer {
 //desribing writer
 pub struct Writer {
     column_position: usize,
-    color_code: ColorCode,
+    pub color_code: ColorCode,
     buffer: &'static mut VgaBuffer,
 }
 

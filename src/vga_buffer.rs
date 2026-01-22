@@ -1,9 +1,19 @@
 use core::fmt;
-use core::fmt::Write;
+use lazy_static::lazy_static;
+use spin::Mutex;
 use volatile::Volatile;
 
 const BUFFER_HEIGHT: usize = 25;
 const BUFFER_WIDTH: usize = 80;
+
+//Create global mutable static writer
+lazy_static! {
+    pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
+        column_position: 0,
+        color_code: ColorCode::new(Color::White, Color::Black),
+        buffer: unsafe { &mut *(0xb8000 as *mut VgaBuffer) },
+    });
+}
 
 //enumerate all colors in VGA
 #[allow(dead_code)]
@@ -119,15 +129,4 @@ impl fmt::Write for Writer {
         self.write_string(s);
         Ok(())
     }
-}
-
-//TEMP
-pub fn print_something() {
-    let mut writer = Writer {
-        column_position: 0,
-        color_code: ColorCode::new(Color::Yellow, Color::Black),
-        buffer: unsafe { &mut *(0xb8000 as *mut VgaBuffer) },
-    };
-
-    write!(writer, "The numbers is {} and {}", 10, 122).unwrap();
 }

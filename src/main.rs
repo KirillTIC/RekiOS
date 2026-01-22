@@ -5,8 +5,8 @@ mod vga_buffer;
 
 #[unsafe(no_mangle)]
 pub extern "C" fn _start() -> ! {
-    println!("Hello, World!");
-    panic!("Some panic!!!");
+    print_ok!("OS was Init");
+    panic!("TODO");
 
     //loop {}
 }

@@ -1,2 +1,2 @@
 # RekiOS
-RekiOS
+Reki OS

@@ -6,7 +6,7 @@
   **A lightweight operating system written entirely in Rust**
   
   [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-  [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
+  [![Rust](https://img.shields.io/badge/rust-1.95.0%2B-orange.svg)](https://www.rust-lang.org/)
   
 </div>
 
@@ -37,7 +37,7 @@ qemu-system-x86_64 -drive format=raw,file=target/x86_64-reki_os/debug/bootimage-
 
 ## 📋 Requirements to build
 
-- Rust 1.70 or higher
+- Rust 1.95.0 nightly
 - bootimage cargo
 
 ## 🤝 Contributing

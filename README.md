@@ -38,6 +38,7 @@ qemu-system-x86_64 -drive format=raw,file=target/x86_64-reki_os/debug/bootimage-
 ## 📋 Requirements to build
 
 - Rust 1.70 or higher
+- bootimage cargo
 
 ## 🤝 Contributing
 

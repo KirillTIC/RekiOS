@@ -12,7 +12,7 @@
 
 ---
 
-## 🚀 About
+## 🏛️ About
 
 Reki OS is a minimalist operating system project built from the ground up using Rust. It focuses on safety, performance, and simplicity.
 
@@ -25,21 +25,19 @@ Reki OS is a minimalist operating system project built from the ground up using 
 ## 🛠️ Building
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/rekios.git
-cd rekios
+git clone https://github.com/KirillTIC/RekiOS.git
+cd RekiOS
 
 # Build the OS
-cargo build --release
+./build.sh
 
-# Run in QEMU (if configured)
-cargo run
+# Run in QEMU 
+qemu-system-x86_64 -drive format=raw,file=target/x86_64-reki_os/debug/bootimage-reki_os.bin
 ```
 
-## 📋 Requirements
+## 📋 Requirements to build
 
 - Rust 1.70 or higher
-- QEMU (for testing)
-- NASM or similar assembler
 
 ## 🤝 Contributing
 
@@ -51,4 +49,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-Built with ❤️ using Rust
+Built with ❤️ using only Rust

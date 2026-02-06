@@ -7,7 +7,7 @@
   
   [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
   [![Rust](https://img.shields.io/badge/rust-1.95.0%2B%20nightly-orange.svg)](https://www.rust-lang.org/)
-  [![Rust](https://img.shields.io/badge/version-0.0.a-green.svg)](https://github.com/KirillTIC/RekiOS/)
+  [![Version](https://img.shields.io/badge/version-0.0.a-green.svg)](https://github.com/KirillTIC/RekiOS/)
   
 </div>
 

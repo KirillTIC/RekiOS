@@ -5,8 +5,7 @@ mod vga_buffer;
 
 #[unsafe(no_mangle)]
 pub extern "C" fn _start() -> ! {
-    print_ok!("OS was Init");
-    println_color!(vga_buffer::Color::Pink, "Just test of color output");
+    test_print();
     panic!("TODO");
     //loop {}
 }
@@ -18,4 +17,9 @@ fn panic(info: &PanicInfo) -> ! {
     print_panic!("{info}");
 
     loop {}
+}
+
+fn test_print() {
+    print_ok!("OS was init");
+    println_color!(vga_buffer::Color::Pink, "Just test of color output");
 }

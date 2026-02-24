@@ -7,9 +7,10 @@ use reki_os::{print_ok, print_panic, println_color, vga_buffer};
 pub extern "C" fn _start() -> ! {
     reki_os::init();
 
-    unsafe {
-        *(0xdeadbeef as *mut u8) = 42;
-    };
+    fn stack_overflow() {
+        stack_overflow();
+    }
+    stack_overflow();
 
     //test_print();
 

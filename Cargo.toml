@@ -1,5 +1,5 @@
 [package]
-name = "RekiOS"
+name = "reki_os"
 version = "0.1.0"
 edition = "2024"
 
@@ -10,7 +10,7 @@ panic = "abort"
 panic = "abort"
 
 [[bin]]
-name = "RekiOS"
+name = "reki_os"
 test = false
 bench = false
 

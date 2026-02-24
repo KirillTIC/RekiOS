@@ -1,11 +1,16 @@
 #![no_std]
 #![no_main]
 
-mod vga_buffer;
+use reki_os::{print_ok, print_panic, println_color, vga_buffer};
 
 #[unsafe(no_mangle)]
 pub extern "C" fn _start() -> ! {
+    reki_os::init();
+
     test_print();
+
+    x86_64::instructions::interrupts::int3();
+
     panic!("TODO");
     //loop {}
 }

@@ -7,12 +7,14 @@ use reki_os::{print_ok, print_panic, println_color, vga_buffer};
 pub extern "C" fn _start() -> ! {
     reki_os::init();
 
-    test_print();
+    unsafe {
+        *(0xdeadbeef as *mut u8) = 42;
+    };
 
-    x86_64::instructions::interrupts::int3();
+    //test_print();
 
-    panic!("TODO");
-    //loop {}
+    //panic!("TODO");
+    loop {}
 }
 
 use core::panic::PanicInfo;

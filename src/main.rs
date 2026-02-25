@@ -1,26 +1,20 @@
 #![no_std]
 #![no_main]
 
-static FONT_DATA: &[u8] = include_bytes!("../assets/fonts/default8x16.psfu");
-
 use bootloader_api::{BootInfo, entry_point};
-use reki_os::framebuffer::FrameBuffer;
-use reki_os::psf_parser::Psf2Font;
-use reki_os::shell::Shell;
+use reki_os::shell::SHELL;
 
 entry_point!(kernel_main);
 
 fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
-    let fb = FrameBuffer::new(boot_info);
-    let font = Psf2Font::new(FONT_DATA);
-    let mut shell = Shell::new(fb, &font);
+    reki_os::init(boot_info);
 
-    reki_os::init();
-
-    shell.clear(0, 0, 0);
-    shell.write_str("Hello, World!\n");
-    shell.set_color(255, 0, 0);
-    shell.write_str("Red\n");
+    if let Some(shell) = SHELL.lock().as_mut() {
+        shell.clear(0, 0, 0);
+        shell.write_str("Hello, World!\n");
+        shell.set_color(255, 0, 0);
+        shell.write_str("Red\n");
+    }
 
     loop {}
 }

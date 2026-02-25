@@ -31,9 +31,6 @@ cd RekiOS
 
 # Build the OS
 ./build.sh
-
-# Run in QEMU 
-qemu-system-x86_64 -drive format=raw,file=target/x86_64-reki_os/debug/bootimage-reki_os.bin
 ```
 
 ## 📋 Requirements

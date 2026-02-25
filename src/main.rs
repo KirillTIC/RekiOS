@@ -1,7 +1,7 @@
 #![no_std]
 #![no_main]
 
-use reki_os::{clear, print_colored, println};
+use reki_os::{clear, println, println_colored};
 
 use bootloader_api::{BootInfo, entry_point};
 
@@ -12,7 +12,12 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
 
     clear!();
     println!("Hello, World!");
-    print_colored!(0, 255, 0, "OS INIT\n");
+    println_colored!(0, 255, 0, "OS INIT");
+
+    fn stack_overflow() {
+        stack_overflow();
+    }
+    stack_overflow();
 
     panic!("TODO")
 
@@ -23,6 +28,6 @@ use core::panic::PanicInfo;
 
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
-    print_colored!(255, 0, 0, "KERNEL PANIC --- {}", _info);
+    println_colored!(255, 0, 0, "KERNEL PANIC --- {}", _info);
     loop {}
 }

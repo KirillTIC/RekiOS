@@ -99,6 +99,12 @@ macro_rules! print_colored {
     };
 }
 #[macro_export]
+macro_rules! println_colored {
+    ($r:expr, $g:expr, $b:expr, $($arg:tt)*) => {
+        $crate::print_colored!($r, $g, $b, "{}\n", format_args!($($arg)*));
+    };
+}
+#[macro_export]
 macro_rules! clear {
     () => {
         if let Some(shell) = $crate::shell::SHELL.lock().as_mut() {

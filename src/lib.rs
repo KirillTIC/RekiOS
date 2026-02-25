@@ -5,6 +5,7 @@ pub mod framebuffer;
 pub mod gdt;
 pub mod interrupts;
 pub mod psf_parser;
+pub mod shell;
 
 pub fn init() {
     gdt::init();

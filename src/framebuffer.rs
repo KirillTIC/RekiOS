@@ -65,4 +65,10 @@ impl FrameBuffer {
             }
         }
     }
+    pub fn width(&self) -> usize {
+        self.info.width
+    }
+    pub fn height(&self) -> usize {
+        self.info.height
+    }
 }

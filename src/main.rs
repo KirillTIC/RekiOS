@@ -1,33 +1,23 @@
 #![no_std]
 #![no_main]
 
-use reki_os::{print_ok, print_panic, println_color, vga_buffer};
+static FONT: &[u8] = include_bytes!("../assets/fonts/default8x16.psfu");
 
-#[unsafe(no_mangle)]
-pub extern "C" fn _start() -> ! {
+use bootloader_api::{BootInfo, entry_point};
+use reki_os::framebuffer::FrameBuffer;
+
+entry_point!(kernel_main);
+
+fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
+    let mut fb = FrameBuffer::new(boot_info);
     reki_os::init();
-
-    fn stack_overflow() {
-        stack_overflow();
-    }
-    stack_overflow();
-
-    //test_print();
-
-    //panic!("TODO");
+    fb.clear(0, 0, 0);
     loop {}
 }
 
 use core::panic::PanicInfo;
 
 #[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
-    print_panic!("{info}");
-
+fn panic(_info: &PanicInfo) -> ! {
     loop {}
-}
-
-fn test_print() {
-    print_ok!("OS was init");
-    println_color!(vga_buffer::Color::Pink, "Just test of color output");
 }

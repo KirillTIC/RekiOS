@@ -1,5 +1,6 @@
 use crate::framebuffer::FrameBuffer;
 use crate::psf_parser::Psf2Font;
+use core::fmt;
 use lazy_static::lazy_static;
 use spin::Mutex;
 
@@ -48,7 +49,7 @@ impl Shell {
             }
         }
     }
-    pub fn write_str(&mut self, s: &str) {
+    pub fn puts(&mut self, s: &str) {
         for c in s.chars() {
             self.write_char(c);
         }
@@ -61,6 +62,49 @@ impl Shell {
         self.cursor_x = 0;
         self.cursor_y = 0;
     }
+}
+
+impl fmt::Write for Shell {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        self.puts(s);
+        Ok(())
+    }
+}
+
+#[macro_export]
+macro_rules! print {
+    ($($arg:tt)*) => {
+        {
+            use core::fmt::Write;
+            if let Some(shell) = $crate::shell::SHELL.lock().as_mut() {
+                write!(shell, $($arg)*).unwrap();
+            }
+        }
+    };
+}
+#[macro_export]
+macro_rules! println {
+    () => ($crate::print!("\n"));
+    ($($arg:tt)*) => ($crate::print!("{}\n", format_args!($($arg)*)));
+}
+#[macro_export]
+macro_rules! print_colored {
+    ($r:expr, $g:expr, $b:expr, $($arg:tt)*) => {
+        if let Some(shell) = $crate::shell::SHELL.lock().as_mut() {
+            shell.set_color($r, $g, $b);
+            use core::fmt::Write;
+            write!(shell, $($arg)*).unwrap();
+            shell.set_color(255, 255, 255);
+        }
+    };
+}
+#[macro_export]
+macro_rules! clear {
+    () => {
+        if let Some(shell) = $crate::shell::SHELL.lock().as_mut() {
+            shell.clear(0, 0, 0);
+        }
+    };
 }
 
 pub fn init(fb: FrameBuffer) {

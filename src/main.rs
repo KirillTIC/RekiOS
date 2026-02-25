@@ -1,25 +1,18 @@
 #![no_std]
 #![no_main]
 
-use reki_os::{print_ok, print_panic, println_color, vga_buffer};
+use bootloader_api::{BootInfo, entry_point};
 
-#[unsafe(no_mangle)]
-pub extern "C" fn _start() -> ! {
+entry_point!(kernel_main);
+
+fn kernel_main(_boot_info: &'static mut BootInfo) -> ! {
     reki_os::init();
-    test_print();
     loop {}
 }
 
 use core::panic::PanicInfo;
 
 #[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
-    print_panic!("{info}");
-
+fn panic(_info: &PanicInfo) -> ! {
     loop {}
-}
-
-fn test_print() {
-    print_ok!("OS was init");
-    println_color!(vga_buffer::Color::Pink, "Just test of color output");
 }

@@ -15,10 +15,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "812e12b5285cc515a9c72a5c1d3b6d46a19dac5acfef5265968c166106e31dd3"
 
 [[package]]
-name = "bootloader"
-version = "0.9.33"
+name = "bootloader_api"
+version = "0.11.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7bdfddac270bbdd45903296bc1caf29a7fdce6b326aaf0bbab7f04c5f98b7447"
+checksum = "5c074a3d1075b26ed77e502d6af8ab1263abbdc3d026c166e46480f973287293"
 
 [[package]]
 name = "const_fn"
@@ -39,10 +39,9 @@ dependencies = [
 name = "reki_os"
 version = "0.1.0"
 dependencies = [
- "bootloader",
+ "bootloader_api",
  "lazy_static",
  "spin 0.5.2",
- "volatile 0.2.7",
  "x86_64",
 ]
 
@@ -66,12 +65,6 @@ checksum = "6980e8d7511241f8acf4aebddbb1ff938df5eebe98691418c4468d0b72a96a67"
 
 [[package]]
 name = "volatile"
-version = "0.2.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6b06ad3ed06fef1713569d547cdbdb439eafed76341820fb0e0344f29a41945"
-
-[[package]]
-name = "volatile"
 version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "442887c63f2c839b346c192d047a7c87e73d0689c9157b00b53dcc27dd5ea793"
@@ -86,5 +79,5 @@ dependencies = [
  "bitflags",
  "const_fn",
  "rustversion",
- "volatile 0.4.6",
+ "volatile",
 ]

@@ -1,3 +1,4 @@
+use crate::psf_parser::Psf2Font;
 use bootloader_api::info::{BootInfo, FrameBufferInfo, PixelFormat};
 
 pub struct FrameBuffer {
@@ -30,14 +31,38 @@ impl FrameBuffer {
                 self.buffer[offset + 2] = b;
             }
             PixelFormat::Bgr => {
-                self.buffer[offset] = r;
+                self.buffer[offset] = b;
                 self.buffer[offset + 1] = g;
-                self.buffer[offset + 2] = b;
+                self.buffer[offset + 2] = r;
             }
             PixelFormat::U8 => {
                 self.buffer[offset] = (r / 3) + (g / 3) + (b / 3);
             }
             _ => {}
+        }
+    }
+    pub fn draw_glyph(
+        &mut self,
+        font: &Psf2Font,
+        x: usize,
+        y: usize,
+        c: char,
+        r: u8,
+        g: u8,
+        b: u8,
+    ) {
+        let glyph = font.get_glyph(c);
+        let width = font.width() as usize;
+        let height = font.height() as usize;
+        let bytes_per_row = (width + 7) / 8;
+
+        for row in 0..height {
+            for col in 0..width {
+                let byte = glyph[row * bytes_per_row + col / 8];
+                if byte & (0x80 >> (col % 8)) != 0 {
+                    self.put_pixel(x + col, y + row, r, g, b);
+                }
+            }
         }
     }
 }

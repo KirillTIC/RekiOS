@@ -15,7 +15,13 @@ cargo +nightly build -Z build-std=core,compiler_builtins -Z build-std-features=c
 
 echo "Creating UEFI disk image..."
 HOST=$(rustc -vV | grep host | awk '{print $2}')
-cargo +nightly run --manifest-path tools/disk-builder/Cargo.toml --target "$HOST" -- "$KERNEL" "$IMAGE"
+PROJDIR=$(pwd)
+cd /tmp && cargo +nightly run \
+  --manifest-path "$PROJDIR/tools/disk-builder/Cargo.toml" \
+  --target-dir "$PROJDIR/tools/disk-builder/target" \
+  --target "$HOST" \
+  -- "$PROJDIR/$KERNEL" "$PROJDIR/$IMAGE"
+cd "$PROJDIR"
 
 echo "Launching QEMU..."
 qemu-system-x86_64 \

@@ -1,7 +1,7 @@
+use crate::arch::{gdt, pic};
+use crate::drivers::timer;
 use lazy_static::lazy_static;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode};
-
-use crate::arch::gdt;
 
 lazy_static! {
     static ref IDT: InterruptDescriptorTable = {
@@ -31,6 +31,9 @@ lazy_static! {
         idt.machine_check.set_handler_fn(machine_check_handler);
         idt.simd_floating_point.set_handler_fn(simd_floating_point_handler);
         idt.virtualization.set_handler_fn(virtualization_handler);
+
+        //PIC interrupts
+        idt[pic::InterruptIndex::Timer.as_u8()].set_handler_fn(timer::timer_interrupt_handler);
 
         idt
     };

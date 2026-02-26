@@ -74,12 +74,12 @@ impl fmt::Write for Shell {
 #[macro_export]
 macro_rules! print {
     ($($arg:tt)*) => {
-        {
+        x86_64::instructions::interrupts::without_interrupts(|| {
             use core::fmt::Write;
             if let Some(shell) = $crate::display::shell::SHELL.lock().as_mut() {
                 write!(shell, $($arg)*).unwrap();
             }
-        }
+        })
     };
 }
 #[macro_export]
@@ -90,12 +90,14 @@ macro_rules! println {
 #[macro_export]
 macro_rules! print_colored {
     ($r:expr, $g:expr, $b:expr, $($arg:tt)*) => {
-        if let Some(shell) = $crate::display::shell::SHELL.lock().as_mut() {
-            shell.set_color($r, $g, $b);
-            use core::fmt::Write;
-            write!(shell, $($arg)*).unwrap();
-            shell.set_color(255, 255, 255);
-        }
+        x86_64::instructions::interrupts::without_interrupts(|| {
+            if let Some(shell) = $crate::display::shell::SHELL.lock().as_mut() {
+                shell.set_color($r, $g, $b);
+                use core::fmt::Write;
+                write!(shell, $($arg)*).unwrap();
+                shell.set_color(255, 255, 255);
+            }
+        })
     };
 }
 #[macro_export]
@@ -107,9 +109,11 @@ macro_rules! println_colored {
 #[macro_export]
 macro_rules! clear {
     () => {
-        if let Some(shell) = $crate::display::shell::SHELL.lock().as_mut() {
-            shell.clear(0, 0, 0);
-        }
+        x86_64::instructions::interrupts::without_interrupts(|| {
+            if let Some(shell) = $crate::display::shell::SHELL.lock().as_mut() {
+                shell.clear(0, 0, 0);
+            }
+        })
     };
 }
 

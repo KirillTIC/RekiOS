@@ -14,14 +14,7 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     println!("Hello, World!");
     println_colored!(0, 255, 0, "OS INIT");
 
-    fn stack_overflow() {
-        stack_overflow();
-    }
-    stack_overflow();
-
-    panic!("TODO")
-
-    //loop {}
+    loop {}
 }
 
 use core::panic::PanicInfo;

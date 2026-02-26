@@ -1,4 +1,4 @@
-use crate::psf_parser::Psf2Font;
+use crate::display::psf_parser::Psf2Font;
 use bootloader_api::info::{BootInfo, FrameBufferInfo, PixelFormat};
 
 pub struct FrameBuffer {

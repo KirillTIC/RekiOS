@@ -1,10 +1,10 @@
-use crate::framebuffer::FrameBuffer;
-use crate::psf_parser::Psf2Font;
+use crate::display::framebuffer::FrameBuffer;
+use crate::display::psf_parser::Psf2Font;
 use core::fmt;
 use lazy_static::lazy_static;
 use spin::Mutex;
 
-static FONT_DATA: &[u8] = include_bytes!("../assets/fonts/default8x16.psfu");
+static FONT_DATA: &[u8] = include_bytes!("../../assets/fonts/default8x16.psfu");
 
 lazy_static! {
     static ref FONT: Psf2Font = Psf2Font::new(FONT_DATA);
@@ -76,7 +76,7 @@ macro_rules! print {
     ($($arg:tt)*) => {
         {
             use core::fmt::Write;
-            if let Some(shell) = $crate::shell::SHELL.lock().as_mut() {
+            if let Some(shell) = $crate::display::shell::SHELL.lock().as_mut() {
                 write!(shell, $($arg)*).unwrap();
             }
         }
@@ -90,7 +90,7 @@ macro_rules! println {
 #[macro_export]
 macro_rules! print_colored {
     ($r:expr, $g:expr, $b:expr, $($arg:tt)*) => {
-        if let Some(shell) = $crate::shell::SHELL.lock().as_mut() {
+        if let Some(shell) = $crate::display::shell::SHELL.lock().as_mut() {
             shell.set_color($r, $g, $b);
             use core::fmt::Write;
             write!(shell, $($arg)*).unwrap();
@@ -107,7 +107,7 @@ macro_rules! println_colored {
 #[macro_export]
 macro_rules! clear {
     () => {
-        if let Some(shell) = $crate::shell::SHELL.lock().as_mut() {
+        if let Some(shell) = $crate::display::shell::SHELL.lock().as_mut() {
             shell.clear(0, 0, 0);
         }
     };

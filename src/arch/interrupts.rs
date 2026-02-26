@@ -1,4 +1,5 @@
 use crate::arch::{gdt, pic};
+use crate::drivers::keyboard;
 use crate::drivers::timer;
 use lazy_static::lazy_static;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode};
@@ -34,6 +35,7 @@ lazy_static! {
 
         //PIC interrupts
         idt[pic::InterruptIndex::Timer.as_u8()].set_handler_fn(timer::timer_interrupt_handler);
+        idt[pic::InterruptIndex::Keyboard.as_u8()].set_handler_fn(keyboard::keyboard_interrupt_handler);
 
         idt
     };

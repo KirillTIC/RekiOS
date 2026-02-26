@@ -15,3 +15,9 @@ pub fn init(boot_info: &'static mut bootloader_api::BootInfo) {
     display::shell::init(display::framebuffer::FrameBuffer::new(boot_info));
     x86_64::instructions::interrupts::enable();
 }
+
+pub fn hlt_loop() -> ! {
+    loop {
+        x86_64::instructions::hlt();
+    }
+}

@@ -14,7 +14,7 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     println!("Hello, World!");
     println_colored!(0, 255, 0, "OS INIT");
 
-    loop {}
+    reki_os::hlt_loop();
 }
 
 use core::panic::PanicInfo;
@@ -22,5 +22,5 @@ use core::panic::PanicInfo;
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
     println_colored!(255, 0, 0, "KERNEL PANIC --- {}", _info);
-    loop {}
+    reki_os::hlt_loop();
 }

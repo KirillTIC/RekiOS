@@ -36,7 +36,6 @@ cd RekiOS
 ## 📋 Requirements
 
 - Rust 1.95.0 nightly
-- bootimage cargo
 - QEMU (optionally)
 
 ## 🤝 Contributing

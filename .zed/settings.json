@@ -1,7 +1,0 @@
-{
-  "show_completion_documentation": true,
-  "completions": {
-    "words_min_length": 1
-  },
-  "show_completions_on_input": true,
-}

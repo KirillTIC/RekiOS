@@ -18,7 +18,7 @@ pub fn init(boot_info: &'static mut bootloader_api::BootInfo) {
         arch::pic::PICS.lock().write_masks(0, 0);
     }
     arch::gdt::init();
-    arch::interrupts::init_idt();
+    arch::interrupts::init();
 
     display::shell::init(display::framebuffer::FrameBuffer::new(framebuffer));
     x86_64::instructions::interrupts::enable();
@@ -27,7 +27,7 @@ pub fn init(boot_info: &'static mut bootloader_api::BootInfo) {
     let mut frame_allocator =
         unsafe { memory::frame_allocator::BumpFrameAllocator::new(memory_regions) };
 
-    memory::heap::init_heap(&mut page_table, &mut frame_allocator);
+    memory::heap::init(&mut page_table, &mut frame_allocator);
 }
 
 pub fn hlt_loop() -> ! {

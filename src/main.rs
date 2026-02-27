@@ -5,8 +5,8 @@ extern crate alloc;
 use alloc::vec::Vec;
 use reki_os::{clear, println, println_colored};
 
-use bootloader_api::{BootInfo, BootloaderConfig, entry_point};
 use bootloader_api::config::Mapping;
+use bootloader_api::{BootInfo, BootloaderConfig, entry_point};
 
 pub static BOOTLOADER_CONFIG: BootloaderConfig = {
     let mut config = BootloaderConfig::new_default();
@@ -25,6 +25,7 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     let mut v: Vec<u32> = Vec::new();
     v.push(1);
     v.push(2);
+    v.push(100 * 2);
     println!("Vec: {:?}", v);
 
     reki_os::hlt_loop();

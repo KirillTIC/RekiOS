@@ -1,5 +1,5 @@
 use crate::display::psf_parser::Psf2Font;
-use bootloader_api::info::{BootInfo, FrameBufferInfo, PixelFormat};
+use bootloader_api::info::{FrameBufferInfo, PixelFormat};
 
 pub struct FrameBuffer {
     buffer: &'static mut [u8],
@@ -7,8 +7,7 @@ pub struct FrameBuffer {
 }
 
 impl FrameBuffer {
-    pub fn new(boot_info: &'static mut BootInfo) -> Self {
-        let fb = boot_info.framebuffer.as_mut().unwrap();
+    pub fn new(fb: &'static mut bootloader_api::info::FrameBuffer) -> Self {
         let info = fb.info();
         let buffer = fb.buffer_mut();
         Self { buffer, info }

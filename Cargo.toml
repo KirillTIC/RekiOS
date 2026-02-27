@@ -15,6 +15,7 @@ test = false
 bench = false
 
 [dependencies]
+linked_list_allocator = "0.10"
 bootloader_api = "0.11"
 spin = "0.5.2"
 x86_64 = "0.15.4"
@@ -24,4 +25,3 @@ pc-keyboard = "0.7.0"
 [dependencies.lazy_static]
 version = "1.0"
 features = ["spin_no_std"]
-

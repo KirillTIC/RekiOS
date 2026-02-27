@@ -126,11 +126,10 @@ extern "x86-interrupt" fn page_fault_handler(
     error_code: PageFaultErrorCode,
 ) {
     use x86_64::registers::control::Cr2;
+    let accessed_address = Cr2::read();
     panic!(
-        "X: Page Fault\nAccessed Address: {:?}\nError: {:?}\n{:#?}",
-        Cr2::read(),
-        error_code,
-        stack_frame
+        "PAGE FAULT at {:?} (error: {:?})\n{:#?}",
+        accessed_address, error_code, stack_frame
     );
 }
 

@@ -100,10 +100,11 @@ macro_rules! print_colored {
         })
     };
 }
+
 #[macro_export]
 macro_rules! println_colored {
     ($r:expr, $g:expr, $b:expr, $($arg:tt)*) => {
-        $crate::print_colored!($r, $g, $b, "{}\n", format_args!($($arg)*));
+        $crate::print_colored!($r, $g, $b, "{}\n", format_args!($($arg)*))
     };
 }
 #[macro_export]

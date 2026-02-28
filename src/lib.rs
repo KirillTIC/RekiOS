@@ -1,6 +1,7 @@
 #![no_std]
 #![feature(abi_x86_interrupt)]
 
+use display::shell::SHELL;
 use x86_64::VirtAddr;
 
 pub mod arch;
@@ -20,18 +21,24 @@ pub fn init(boot_info: &'static mut bootloader_api::BootInfo) {
     arch::gdt::init();
     arch::interrupts::init();
 
-    display::shell::init(display::framebuffer::FrameBuffer::new(framebuffer));
-    x86_64::instructions::interrupts::enable();
-
     let mut page_table = unsafe { memory::page_table::init(phys_offset) };
     let mut frame_allocator =
         unsafe { memory::frame_allocator::BumpFrameAllocator::new(memory_regions) };
 
     memory::heap::init(&mut page_table, &mut frame_allocator);
+
+    display::shell::init(display::framebuffer::FrameBuffer::new(framebuffer));
+    x86_64::instructions::interrupts::enable();
 }
 
 pub fn hlt_loop() -> ! {
     loop {
         x86_64::instructions::hlt();
+
+        x86_64::instructions::interrupts::without_interrupts(|| {
+            if let Some(shell) = SHELL.lock().as_mut() {
+                shell.flush();
+            }
+        });
     }
 }

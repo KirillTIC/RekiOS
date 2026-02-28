@@ -48,6 +48,7 @@ impl Shell {
                 self.cursor_x += char_width;
             }
         }
+        self.fb.dirty = true;
     }
     pub fn puts(&mut self, s: &str) {
         for c in s.chars() {
@@ -57,10 +58,16 @@ impl Shell {
     pub fn set_color(&mut self, r: u8, g: u8, b: u8) {
         self.fg = (r, g, b);
     }
+    pub fn flush(&mut self) {
+        if self.fb.dirty {
+            self.fb.swap();
+        }
+    }
     pub fn clear(&mut self, r: u8, g: u8, b: u8) {
         self.fb.clear(r, g, b);
         self.cursor_x = 0;
         self.cursor_y = 0;
+        self.fb.dirty = true;
     }
 }
 

@@ -1,16 +1,28 @@
+extern crate alloc;
 use crate::display::psf_parser::Psf2Font;
+use alloc::vec;
+use alloc::vec::Vec;
 use bootloader_api::info::{FrameBufferInfo, PixelFormat};
 
 pub struct FrameBuffer {
     buffer: &'static mut [u8],
+    back_buffer: Vec<u8>,
     info: FrameBufferInfo,
+    pub dirty: bool,
 }
 
 impl FrameBuffer {
     pub fn new(fb: &'static mut bootloader_api::info::FrameBuffer) -> Self {
         let info = fb.info();
         let buffer = fb.buffer_mut();
-        Self { buffer, info }
+        let back_buffer = vec![0u8; buffer.len()];
+        let dirty = false;
+        Self {
+            buffer,
+            back_buffer,
+            info,
+            dirty,
+        }
     }
     pub fn clear(&mut self, r: u8, g: u8, b: u8) {
         let (w, h) = (self.info.width, self.info.height);
@@ -25,17 +37,17 @@ impl FrameBuffer {
             y * self.info.stride * self.info.bytes_per_pixel + x * self.info.bytes_per_pixel;
         match self.info.pixel_format {
             PixelFormat::Rgb => {
-                self.buffer[offset] = r;
-                self.buffer[offset + 1] = g;
-                self.buffer[offset + 2] = b;
+                self.back_buffer[offset] = r;
+                self.back_buffer[offset + 1] = g;
+                self.back_buffer[offset + 2] = b;
             }
             PixelFormat::Bgr => {
-                self.buffer[offset] = b;
-                self.buffer[offset + 1] = g;
-                self.buffer[offset + 2] = r;
+                self.back_buffer[offset] = b;
+                self.back_buffer[offset + 1] = g;
+                self.back_buffer[offset + 2] = r;
             }
             PixelFormat::U8 => {
-                self.buffer[offset] = (r / 3) + (g / 3) + (b / 3);
+                self.back_buffer[offset] = (r / 3) + (g / 3) + (b / 3);
             }
             _ => {}
         }
@@ -63,6 +75,10 @@ impl FrameBuffer {
                 }
             }
         }
+    }
+    pub fn swap(&mut self) {
+        self.buffer.copy_from_slice(&self.back_buffer.as_slice());
+        self.dirty = false;
     }
     pub fn width(&self) -> usize {
         self.info.width

@@ -3,7 +3,7 @@
 extern crate alloc;
 
 use alloc::vec::Vec;
-use reki_os::{clear, println, println_colored};
+use reki_os::{clear, hlt_loop, println, println_colored};
 
 use bootloader_api::config::Mapping;
 use bootloader_api::{BootInfo, BootloaderConfig, entry_point};
@@ -28,7 +28,7 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     v.push(100 * 2);
     println!("Vec: {:?}", v);
 
-    reki_os::hlt_loop();
+    hlt_loop();
 }
 
 use core::panic::PanicInfo;
@@ -36,5 +36,5 @@ use core::panic::PanicInfo;
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
     println_colored!(255, 0, 0, "KERNEL PANIC --- {}", _info);
-    reki_os::hlt_loop();
+    hlt_loop();
 }

@@ -18,7 +18,6 @@ pub struct Shell {
     fb: FrameBuffer,
     fg: (u8, u8, u8),
     str_buffer: Vec<Vec<(char, (u8, u8, u8))>>,
-    scroll: usize,
 }
 
 impl Shell {
@@ -27,7 +26,6 @@ impl Shell {
             fb,
             fg: (255, 255, 255),
             str_buffer: vec![vec![]],
-            scroll: 0,
         }
     }
 
@@ -55,8 +53,14 @@ impl Shell {
         self.fb.clear(0, 0, 0);
         let char_width = FONT.width() as usize;
         let char_height = FONT.height() as usize;
+        let visible = self.fb.height() / char_height;
+        let start = if self.str_buffer.len() > visible {
+            self.str_buffer.len() - visible
+        } else {
+            0
+        };
 
-        for (i, line) in self.str_buffer.iter().enumerate() {
+        for (i, line) in self.str_buffer.iter().skip(start).enumerate() {
             let cursor_y = i * char_height;
             for (j, (c, (r, g, b))) in line.iter().enumerate() {
                 let cursor_x = j * char_width;

@@ -1,5 +1,8 @@
+extern crate alloc;
 use crate::display::framebuffer::FrameBuffer;
 use crate::display::psf_parser::Psf2Font;
+use alloc::vec;
+use alloc::vec::Vec;
 use core::fmt;
 use lazy_static::lazy_static;
 use spin::Mutex;
@@ -13,60 +16,76 @@ lazy_static! {
 
 pub struct Shell {
     fb: FrameBuffer,
-    cursor_x: usize,
-    cursor_y: usize,
     fg: (u8, u8, u8),
+    str_buffer: Vec<Vec<(char, (u8, u8, u8))>>,
+    scroll: usize,
 }
 
 impl Shell {
     pub fn new(fb: FrameBuffer) -> Self {
         Self {
             fb,
-            cursor_x: 0,
-            cursor_y: 0,
             fg: (255, 255, 255),
+            str_buffer: vec![vec![]],
+            scroll: 0,
         }
     }
-    pub fn write_char(&mut self, c: char) {
-        let char_width = FONT.width() as usize;
-        let char_height = FONT.height() as usize;
 
+    pub fn write_char(&mut self, c: char) {
         match c {
             '\n' => {
-                self.cursor_x = 0;
-                self.cursor_y += char_height;
+                self.str_buffer.push(vec![]);
             }
             _ => {
-                if self.cursor_x + char_width >= self.fb.width() {
-                    self.cursor_x = 0;
-                    self.cursor_y += char_height;
+                let max_chars = self.fb.width() / FONT.width() as usize;
+                if let Some(last) = self.str_buffer.last() {
+                    if last.len() >= max_chars {
+                        self.str_buffer.push(vec![]);
+                    }
                 }
-
-                let (r, g, b) = self.fg;
-                self.fb
-                    .draw_glyph(&FONT, self.cursor_x, self.cursor_y, c, r, g, b);
-                self.cursor_x += char_width;
+                if let Some(line) = self.str_buffer.last_mut() {
+                    line.push((c, self.fg));
+                }
             }
         }
         self.fb.dirty = true;
     }
+
+    fn render(&mut self) {
+        self.fb.clear(0, 0, 0);
+        let char_width = FONT.width() as usize;
+        let char_height = FONT.height() as usize;
+
+        for (i, line) in self.str_buffer.iter().enumerate() {
+            let cursor_y = i * char_height;
+            for (j, (c, (r, g, b))) in line.iter().enumerate() {
+                let cursor_x = j * char_width;
+                self.fb
+                    .draw_glyph(&FONT, cursor_x, cursor_y, *c, *r, *g, *b);
+            }
+        }
+    }
+
     pub fn puts(&mut self, s: &str) {
         for c in s.chars() {
             self.write_char(c);
         }
     }
+
     pub fn set_color(&mut self, r: u8, g: u8, b: u8) {
         self.fg = (r, g, b);
     }
+
     pub fn flush(&mut self) {
         if self.fb.dirty {
+            self.render();
             self.fb.swap();
         }
     }
+
     pub fn clear(&mut self, r: u8, g: u8, b: u8) {
         self.fb.clear(r, g, b);
-        self.cursor_x = 0;
-        self.cursor_y = 0;
+        self.str_buffer = vec![vec![]];
         self.fb.dirty = true;
     }
 }

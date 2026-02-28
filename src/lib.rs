@@ -26,7 +26,6 @@ pub fn init(boot_info: &'static mut bootloader_api::BootInfo) {
         unsafe { memory::frame_allocator::BumpFrameAllocator::new(memory_regions) };
 
     memory::heap::init(&mut page_table, &mut frame_allocator);
-
     display::shell::init(display::framebuffer::FrameBuffer::new(framebuffer));
     x86_64::instructions::interrupts::enable();
 }

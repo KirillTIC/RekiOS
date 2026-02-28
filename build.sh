@@ -26,4 +26,5 @@ cd "$PROJDIR"
 echo "Launching QEMU..."
 qemu-system-x86_64 \
   -bios /usr/share/ovmf/x64/OVMF.4m.fd \
-  -drive format=raw,file="$IMAGE"
+  -drive format=raw,file="$IMAGE" \
+  -serial stdio

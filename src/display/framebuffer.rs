@@ -25,6 +25,10 @@ impl FrameBuffer {
         }
     }
     pub fn clear(&mut self, r: u8, g: u8, b: u8) {
+        if r == 0 && g == 0 && b == 0 {
+            self.back_buffer.fill(0);
+            return;
+        }
         let (w, h) = (self.info.width, self.info.height);
         for y in 0..h {
             for x in 0..w {

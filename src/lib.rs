@@ -1,7 +1,9 @@
 #![no_std]
 #![feature(abi_x86_interrupt)]
 
+use bootloader_api::info::MemoryRegions;
 use shell::shell::SHELL;
+use spin::Once;
 use x86_64::VirtAddr;
 
 pub mod arch;
@@ -10,7 +12,10 @@ pub mod drivers;
 pub mod memory;
 pub mod shell;
 
+static MEMORY_REGIONS: Once<&'static MemoryRegions> = Once::new();
+
 pub fn init(boot_info: &'static mut bootloader_api::BootInfo) {
+    MEMORY_REGIONS.call_once(|| &boot_info.memory_regions);
     let phys_offset = VirtAddr::new(boot_info.physical_memory_offset.into_option().unwrap());
     let memory_regions = &boot_info.memory_regions;
     let framebuffer = boot_info.framebuffer.as_mut().unwrap();

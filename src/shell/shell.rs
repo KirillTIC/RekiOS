@@ -2,7 +2,7 @@ extern crate alloc;
 use crate::display::framebuffer::FrameBuffer;
 use crate::display::psf_parser::Psf2Font;
 use crate::drivers::keyboard;
-use crate::shell::interpreter;
+use crate::shell::interpreter::{self, CommandResult};
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -102,6 +102,12 @@ impl Shell {
         self.fg = (r, g, b);
     }
 
+    pub fn write_colored(&mut self, r: u8, g: u8, b: u8, args: fmt::Arguments) {
+        self.set_color(r, g, b);
+        fmt::Write::write_fmt(self, args).unwrap();
+        self.set_color(255, 255, 255);
+    }
+
     pub fn flush(&mut self) {
         if self.fb.dirty {
             self.render();
@@ -119,15 +125,20 @@ impl Shell {
                 self.fb.dirty = true;
             } else {
                 self.write_char('\n');
-                if let Some(response) = interpreter::read(&self.input_buffer) {
-                    self.puts(response.as_str());
+                match interpreter::read(&self.input_buffer) {
+                    CommandResult::Output(s, (r, g, b)) => {
+                        self.write_colored(r, g, b, format_args!("{}", s));
+                    }
+                    CommandResult::Clear => {
+                        self.clear(0, 0, 0);
+                    }
+                    CommandResult::None => {}
                 }
                 self.write_char('\n');
                 self.input_buffer.clear();
             }
         }
     }
-
     pub fn clear(&mut self, r: u8, g: u8, b: u8) {
         self.fb.clear(r, g, b);
         self.str_buffer = vec![vec![]];

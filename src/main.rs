@@ -2,8 +2,7 @@
 #![no_main]
 extern crate alloc;
 
-use alloc::vec::Vec;
-use reki_os::{clear, hlt_loop, println, println_colored};
+use reki_os::{clear, hlt_loop, println_colored};
 
 use bootloader_api::config::Mapping;
 use bootloader_api::{BootInfo, BootloaderConfig, entry_point};
@@ -20,13 +19,7 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     reki_os::init(boot_info);
 
     clear!();
-    println!("Hello, World!");
-    println_colored!(0, 255, 0, "OS INIT");
-    let mut v: Vec<u32> = Vec::new();
-    v.push(1);
-    v.push(2);
-    v.push(100 * 2);
-    println!("Vec: {:?}", v);
+    println_colored!(0, 255, 0, "OS INIT\n");
 
     hlt_loop();
 }

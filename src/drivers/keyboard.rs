@@ -1,11 +1,12 @@
+extern crate alloc;
 use crate::arch::pic;
-use crate::print;
+use alloc::collections::VecDeque;
+use lazy_static::lazy_static;
+use spin::Mutex;
 use x86_64::structures::idt::InterruptStackFrame;
 
 pub extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStackFrame) {
-    use lazy_static::lazy_static;
     use pc_keyboard::{DecodedKey, HandleControl, Keyboard, ScancodeSet1, layouts};
-    use spin::Mutex;
     use x86_64::instructions::port::Port;
 
     lazy_static! {
@@ -24,7 +25,7 @@ pub extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: Interrupt
     if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
         if let Some(key) = keyboard.process_keyevent(key_event) {
             match key {
-                DecodedKey::Unicode(character) => print!("{}", character),
+                DecodedKey::Unicode(character) => push_key(character),
                 DecodedKey::RawKey(_) => {}
             }
         }
@@ -35,4 +36,14 @@ pub extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: Interrupt
             .lock()
             .notify_end_of_interrupt(pic::InterruptIndex::Keyboard.as_u8());
     }
+}
+
+lazy_static! {
+    static ref KEY_QUEUE: Mutex<VecDeque<char>> = Mutex::new(VecDeque::new());
+}
+pub fn push_key(c: char) {
+    KEY_QUEUE.lock().push_back(c);
+}
+pub fn pop_key() -> Option<char> {
+    KEY_QUEUE.lock().pop_front()
 }

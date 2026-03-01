@@ -1,13 +1,14 @@
 #![no_std]
 #![feature(abi_x86_interrupt)]
 
-use display::shell::SHELL;
+use shell::shell::SHELL;
 use x86_64::VirtAddr;
 
 pub mod arch;
 pub mod display;
 pub mod drivers;
 pub mod memory;
+pub mod shell;
 
 pub fn init(boot_info: &'static mut bootloader_api::BootInfo) {
     let phys_offset = VirtAddr::new(boot_info.physical_memory_offset.into_option().unwrap());
@@ -26,7 +27,7 @@ pub fn init(boot_info: &'static mut bootloader_api::BootInfo) {
         unsafe { memory::frame_allocator::BumpFrameAllocator::new(memory_regions) };
 
     memory::heap::init(&mut page_table, &mut frame_allocator);
-    display::shell::init(display::framebuffer::FrameBuffer::new(framebuffer));
+    shell::shell::init(display::framebuffer::FrameBuffer::new(framebuffer));
     x86_64::instructions::interrupts::enable();
 }
 

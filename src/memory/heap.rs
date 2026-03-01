@@ -7,7 +7,7 @@ use x86_64::{
 use crate::memory::{frame_allocator::BumpFrameAllocator, page_table::map_range};
 
 const HEAP_START: u64 = 0x_4444_4444_0000;
-const HEAP_SIZE: u64 = 4 * 1024 * 1024;
+const HEAP_SIZE: u64 = 16 * 1024 * 1024;
 
 #[global_allocator]
 static ALLOCATOR: LockedHeap = LockedHeap::empty();

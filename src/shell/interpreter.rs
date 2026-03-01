@@ -8,7 +8,7 @@ use core::str;
 use x86_64::instructions::port::Port;
 
 pub enum CommandResult {
-    Output(String, (u8, u8, u8)),
+    Output(String),
     Clear,
     None,
 }
@@ -19,16 +19,15 @@ pub fn read(command: &String) -> CommandResult {
     let args = &parts[1..];
 
     match cmd {
-        "help" => CommandResult::Output(
-            format!("Commands: help, echo, clear, fetch, reboot, halt (Only QEMU/Bochs)"),
-            (0, 255, 0),
-        ),
-        "echo" => CommandResult::Output(args.join(" "), (255, 255, 255)),
+        "help" => CommandResult::Output(format!(
+            "\x02Commands: help, echo, clear, fetch, reboot, halt (Only QEMU/Bochs)"
+        )),
+        "echo" => CommandResult::Output(args.join(" ")),
         "clear" => CommandResult::Clear,
-        "fetch" => CommandResult::Output(fetch(), (255, 255, 255)),
+        "fetch" => CommandResult::Output(fetch()),
         "reboot" => reboot(),
         "halt" => halt(),
-        _ => CommandResult::Output(format!("Unkown command: {}", cmd), (255, 255, 255)),
+        _ => CommandResult::Output(format!("\x03Unkown command: {}", cmd)),
     }
 }
 
@@ -83,7 +82,7 @@ pub fn fetch() -> String {
         .trim_matches(|c: char| c == '\0' || c.is_whitespace());
 
     format!(
-        "\n OS: RekiOS \n OS version: 0.0.a \n Shell: RekiSh \n Shell vesrion: 0.p.a \n CPU: {} \n RAM: {}MiB Usage (with UEFI)\n",
+        "\n \x02OS: RekiOS \n \x02OS version: 0.0.a \n \x03Shell: RekiSh \n \x03Shell vesrion: 0.p.a \n \x04CPU: {} \n \x04RAM: {}MiB Usage (with UEFI)\n",
         cpu_name, ram
     )
 }

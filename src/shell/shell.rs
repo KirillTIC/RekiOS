@@ -10,7 +10,7 @@ use core::fmt;
 use lazy_static::lazy_static;
 use spin::Mutex;
 
-static FONT_DATA: &[u8] = include_bytes!("../../assets/fonts/default8x16.psfu");
+static FONT_DATA: &[u8] = include_bytes!("../../assets/fonts/ter-powerline-v16b.psf");
 
 lazy_static! {
     static ref FONT: Psf2Font = Psf2Font::new(FONT_DATA);
@@ -88,7 +88,7 @@ impl Shell {
                 .saturating_sub(1)
                 .saturating_sub(start))
                 * char_height;
-            self.fb.draw_glyph(&FONT, x, y, '_', 255, 255, 255);
+            self.fb.draw_glyph(&FONT, x, y, '█', 255, 255, 255);
         }
     }
 
@@ -97,20 +97,20 @@ impl Shell {
         self.fb.dirty = true;
     }
 
-    pub fn puts(&mut self, s: &str) {
+    pub fn puts(&mut self, s: String) {
         for c in s.chars() {
-            self.write_char(c);
+            match c {
+                '\x01' => self.set_color(255, 255, 255),
+                '\x02' => self.set_color(0, 255, 0),
+                '\x03' => self.set_color(255, 0, 0),
+                '\x04' => self.set_color(0, 0, 255),
+                _ => self.write_char(c),
+            }
         }
     }
 
     pub fn set_color(&mut self, r: u8, g: u8, b: u8) {
         self.fg = (r, g, b);
-    }
-
-    pub fn write_colored(&mut self, r: u8, g: u8, b: u8, args: fmt::Arguments) {
-        self.set_color(r, g, b);
-        fmt::Write::write_fmt(self, args).unwrap();
-        self.set_color(255, 255, 255);
     }
 
     pub fn flush(&mut self) {
@@ -132,8 +132,9 @@ impl Shell {
                 if self.input_buffer != "" {
                     self.write_char('\n');
                     match interpreter::read(&self.input_buffer) {
-                        CommandResult::Output(s, (r, g, b)) => {
-                            self.write_colored(r, g, b, format_args!("{}", s));
+                        CommandResult::Output(s) => {
+                            self.puts(s);
+                            self.set_color(255, 255, 255);
                         }
                         CommandResult::Clear => {
                             self.clear(0, 0, 0);
@@ -157,7 +158,7 @@ impl Shell {
 
 impl fmt::Write for Shell {
     fn write_str(&mut self, s: &str) -> fmt::Result {
-        self.puts(s);
+        self.puts(String::from(s));
         Ok(())
     }
 }
@@ -169,6 +170,7 @@ macro_rules! print {
             use core::fmt::Write;
             if let Some(shell) = $crate::shell::shell::SHELL.lock().as_mut() {
                 write!(shell, $($arg)*).unwrap();
+                shell.set_color(255, 255, 255);
             }
         })
     };
@@ -177,26 +179,6 @@ macro_rules! print {
 macro_rules! println {
     () => ($crate::print!("\n"));
     ($($arg:tt)*) => ($crate::print!("{}\n", format_args!($($arg)*)));
-}
-#[macro_export]
-macro_rules! print_colored {
-    ($r:expr, $g:expr, $b:expr, $($arg:tt)*) => {
-        x86_64::instructions::interrupts::without_interrupts(|| {
-            if let Some(shell) = $crate::shell::shell::SHELL.lock().as_mut() {
-                shell.set_color($r, $g, $b);
-                use core::fmt::Write;
-                write!(shell, $($arg)*).unwrap();
-                shell.set_color(255, 255, 255);
-            }
-        })
-    };
-}
-
-#[macro_export]
-macro_rules! println_colored {
-    ($r:expr, $g:expr, $b:expr, $($arg:tt)*) => {
-        $crate::print_colored!($r, $g, $b, "{}\n", format_args!($($arg)*))
-    };
 }
 #[macro_export]
 macro_rules! clear {

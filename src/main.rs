@@ -2,7 +2,7 @@
 #![no_main]
 extern crate alloc;
 
-use reki_os::{clear, hlt_loop, println_colored};
+use reki_os::{clear, hlt_loop, println};
 
 use bootloader_api::config::Mapping;
 use bootloader_api::{BootInfo, BootloaderConfig, entry_point};
@@ -19,7 +19,7 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     reki_os::init(boot_info);
 
     clear!();
-    println_colored!(0, 255, 0, "OS INIT\n");
+    println!("\x02OS INIT\n");
 
     hlt_loop();
 }
@@ -28,6 +28,6 @@ use core::panic::PanicInfo;
 
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
-    println_colored!(255, 0, 0, "KERNEL PANIC --- {}", _info);
+    println!("\x03KERNEL PANIC --- {}", _info);
     hlt_loop();
 }

@@ -124,18 +124,22 @@ impl Shell {
                 }
                 self.fb.dirty = true;
             } else {
-                self.write_char('\n');
-                match interpreter::read(&self.input_buffer) {
-                    CommandResult::Output(s, (r, g, b)) => {
-                        self.write_colored(r, g, b, format_args!("{}", s));
+                if self.input_buffer != "" {
+                    self.write_char('\n');
+                    match interpreter::read(&self.input_buffer) {
+                        CommandResult::Output(s, (r, g, b)) => {
+                            self.write_colored(r, g, b, format_args!("{}", s));
+                        }
+                        CommandResult::Clear => {
+                            self.clear(0, 0, 0);
+                        }
+                        CommandResult::None => {}
                     }
-                    CommandResult::Clear => {
-                        self.clear(0, 0, 0);
-                    }
-                    CommandResult::None => {}
+                    self.write_char('\n');
+                    self.input_buffer.clear();
+                } else {
+                    self.write_char('\n');
                 }
-                self.write_char('\n');
-                self.input_buffer.clear();
             }
         }
     }

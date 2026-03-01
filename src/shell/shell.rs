@@ -82,7 +82,12 @@ impl Shell {
 
         if self.cursor_visible {
             let x = self.str_buffer.last().map_or(0, |l| l.len()) * char_width;
-            let y = (self.str_buffer.len().saturating_sub(1)) * char_height;
+            let y = (self
+                .str_buffer
+                .len()
+                .saturating_sub(1)
+                .saturating_sub(start))
+                * char_height;
             self.fb.draw_glyph(&FONT, x, y, '_', 255, 255, 255);
         }
     }

@@ -2,6 +2,7 @@ extern crate alloc;
 use crate::display::framebuffer::FrameBuffer;
 use crate::display::psf_parser::Psf2Font;
 use crate::drivers::keyboard;
+use crate::shell::interpreter;
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -17,10 +18,11 @@ lazy_static! {
 }
 
 pub struct Shell {
-    fb: FrameBuffer,
+    pub fb: FrameBuffer,
     fg: (u8, u8, u8),
     str_buffer: Vec<Vec<(char, (u8, u8, u8))>>,
     input_buffer: String,
+    pub cursor_visible: bool,
 }
 
 impl Shell {
@@ -30,6 +32,7 @@ impl Shell {
             fg: (255, 255, 255),
             str_buffer: vec![vec![]],
             input_buffer: String::from(""),
+            cursor_visible: true,
         };
         shell.str_buffer[0].push(('H', (255, 255, 255)));
         shell.render();
@@ -76,6 +79,17 @@ impl Shell {
                     .draw_glyph(&FONT, cursor_x, cursor_y, *c, *r, *g, *b);
             }
         }
+
+        if self.cursor_visible {
+            let x = self.str_buffer.last().map_or(0, |l| l.len()) * char_width;
+            let y = (self.str_buffer.len().saturating_sub(1)) * char_height;
+            self.fb.draw_glyph(&FONT, x, y, '_', 255, 255, 255);
+        }
+    }
+
+    pub fn cursor_update(&mut self) {
+        self.cursor_visible = !self.cursor_visible;
+        self.fb.dirty = true;
     }
 
     pub fn puts(&mut self, s: &str) {
@@ -94,8 +108,23 @@ impl Shell {
             self.fb.swap();
         }
         if let Some(c) = keyboard::pop_key() {
-            self.write_char(c);
-            self.input_buffer.push(c);
+            if c != '\n' && c != 0x08 as char {
+                self.write_char(c);
+                self.input_buffer.push(c);
+            } else if c == 0x08 as char {
+                self.input_buffer.pop();
+                if let Some(line) = self.str_buffer.last_mut() {
+                    line.pop();
+                }
+                self.fb.dirty = true;
+            } else {
+                self.write_char('\n');
+                if let Some(response) = interpreter::read(&self.input_buffer) {
+                    self.puts(response.as_str());
+                }
+                self.write_char('\n');
+                self.input_buffer.clear();
+            }
         }
     }
 

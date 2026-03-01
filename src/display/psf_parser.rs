@@ -24,7 +24,7 @@ impl Psf2Font {
         Self { header, glyphs }
     }
     pub fn get_glyph(&self, c: char) -> &[u8] {
-        let idx = c as usize;
+        let idx = (c as usize).min(self.header.num_glyphs as usize - 1);
         let start = idx * self.header.bytes_per_glyph as usize;
         &self.glyphs[start..start + self.header.bytes_per_glyph as usize]
     }

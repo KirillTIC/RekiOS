@@ -1,6 +1,16 @@
+use crate::shell::shell::SHELL;
+use core::sync::atomic::{AtomicU64, Ordering};
 use x86_64::structures::idt::InterruptStackFrame;
 
+static TICK_COUNT: AtomicU64 = AtomicU64::new(0);
+
 pub extern "x86-interrupt" fn timer_interrupt_handler(_stack_frame: InterruptStackFrame) {
+    let ticks = TICK_COUNT.fetch_add(1, Ordering::Relaxed);
+    if ticks % 10 == 0 {
+        if let Some(shell) = SHELL.lock().as_mut() {
+            shell.cursor_update();
+        }
+    }
     unsafe {
         crate::arch::pic::PICS
             .lock()

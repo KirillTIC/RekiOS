@@ -11,6 +11,7 @@ pub mod display;
 pub mod drivers;
 pub mod memory;
 pub mod shell;
+pub mod task;
 
 static MEMORY_REGIONS: Once<&'static MemoryRegions> = Once::new();
 
@@ -33,7 +34,19 @@ pub fn init(boot_info: &'static mut bootloader_api::BootInfo) {
 
     memory::heap::init(&mut page_table, &mut frame_allocator);
     shell::shell::init(display::framebuffer::FrameBuffer::new(framebuffer));
+
+    task::scheduler::SCHEDULER.lock().add_task(my_first_task);
+    task::task::init();
+    task::scheduler::start();
     x86_64::instructions::interrupts::enable();
+}
+
+fn my_first_task() -> ! {
+    println!("Hello from first task!");
+    loop {
+        task::scheduler::yield_now();
+        x86_64::instructions::hlt();
+    }
 }
 
 pub fn hlt_loop() -> ! {
@@ -41,8 +54,10 @@ pub fn hlt_loop() -> ! {
         x86_64::instructions::hlt();
 
         x86_64::instructions::interrupts::without_interrupts(|| {
-            if let Some(shell) = SHELL.lock().as_mut() {
-                shell.flush();
+            if let Some(mut guard) = SHELL.try_lock() {
+                if let Some(shell) = guard.as_mut() {
+                    shell.flush();
+                }
             }
         });
     }

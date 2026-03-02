@@ -2,10 +2,10 @@
 #![no_main]
 extern crate alloc;
 
-use reki_os::{clear, hlt_loop, println};
-
 use bootloader_api::config::Mapping;
 use bootloader_api::{BootInfo, BootloaderConfig, entry_point};
+use reki_os::shell::interpreter;
+use reki_os::{clear, hlt_loop, println};
 
 pub static BOOTLOADER_CONFIG: BootloaderConfig = {
     let mut config = BootloaderConfig::new_default();
@@ -19,7 +19,10 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     reki_os::init(boot_info);
 
     clear!();
-    println!("\x02OS INIT\n");
+    println!(
+        "Reki OS | Copyright (c) 2026 czeplenok -- MIT License\n{}",
+        interpreter::fetch()
+    );
 
     hlt_loop();
 }

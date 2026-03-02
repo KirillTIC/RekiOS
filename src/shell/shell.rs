@@ -10,7 +10,7 @@ use core::fmt;
 use lazy_static::lazy_static;
 use spin::Mutex;
 
-static FONT_DATA: &[u8] = include_bytes!("../../assets/fonts/ter-powerline-v16b.psf");
+static FONT_DATA: &[u8] = include_bytes!("../../assets/fonts/default8x16.psfu");
 
 lazy_static! {
     static ref FONT: Psf2Font = Psf2Font::new(FONT_DATA);
@@ -100,10 +100,16 @@ impl Shell {
     pub fn puts(&mut self, s: String) {
         for c in s.chars() {
             match c {
-                '\x01' => self.set_color(255, 255, 255),
-                '\x02' => self.set_color(0, 255, 0),
-                '\x03' => self.set_color(255, 0, 0),
-                '\x04' => self.set_color(0, 0, 255),
+                '\x01' => self.set_color(255, 255, 255), // white
+                '\x02' => self.set_color(0, 255, 0),     // green
+                '\x03' => self.set_color(255, 0, 0),     // red
+                '\x04' => self.set_color(0, 0, 255),     // blue
+                '\x05' => self.set_color(255, 255, 0),   // yellow
+                '\x06' => self.set_color(0, 255, 255),   // cyan
+                '\x0B' => self.set_color(255, 0, 255),   // magenta
+                '\x0C' => self.set_color(255, 165, 0),   // orange
+                '\x0E' => self.set_color(192, 192, 192), // light gray
+                '\x0F' => self.set_color(128, 128, 128), // dark gray
                 _ => self.write_char(c),
             }
         }

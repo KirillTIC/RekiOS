@@ -80,9 +80,22 @@ pub fn fetch() -> String {
     let cpu_name = str::from_utf8(&name_bytes)
         .unwrap_or("Unknown")
         .trim_matches(|c: char| c == '\0' || c.is_whitespace());
+    let logo = r#"
+          __
+  ___  _//   \
+_/   \/__|_   \
+/  __//_/==\_  | ___
+/ | / /|// == \ \  /
+|  | |\|| //_\ | |_/
+\  \ \\ / \_/| || \
+\___/\\| _  ///___\
+\__|\_\=//_// _\_|
+   \___\_____/
+     \____/
+    "#;
 
     format!(
-        "\n \x02OS: RekiOS \n \x02OS version: 0.0.a \n \x03Shell: RekiSh \n \x03Shell vesrion: 0.p.a \n \x04CPU: {} \n \x04RAM: {}MiB Usage (with UEFI)\n",
-        cpu_name, ram
+        "\n\x03{} \n \x01▼\x02▼\x03▼\x04▼\x05▼\x06▼\x0B▼\x0C▼\x0E▼\x0F▼\x01▼\x02▼\x03▼\x04▼\x05▼\x06▼\x0B▼\x0C▼\x0E▼\x0F▼ \n \x05┌OS: RekiOS \n └OS version: 0.0.a \n \x0C┌Shell: RekiSh \n └Shell vesrion: 0.p.a \n \x06┌CPU: {} \n └RAM: {}MiB Usage (with UEFI) \n \x01▲\x02▲\x03▲\x04▲\x05▲\x06▲\x0B▲\x0C▲\x0E▲\x0F▲\x01▲\x02▲\x03▲\x04▲\x05▲\x06▲\x0B▲\x0C▲\x0E▲\x0F▲ \n",
+        logo, cpu_name, ram
     )
 }

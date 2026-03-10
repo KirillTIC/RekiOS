@@ -2,7 +2,7 @@ extern crate alloc;
 use core::usize;
 
 use alloc::boxed::Box;
-use x86_64::VirtAddr;
+use x86_64::{VirtAddr, structures::paging::PhysFrame};
 
 use crate::task::{idle::idle_task, scheduler::SCHEDULER};
 
@@ -12,6 +12,7 @@ pub struct Task {
     pub id: usize,
     pub state: TaskState,
     pub stack_pointer: VirtAddr,
+    pub p4_frame: Option<PhysFrame>,
     _stack: Box<[u8; STACK_SIZE]>,
 }
 
@@ -23,7 +24,21 @@ pub enum TaskState {
     Dead,
 }
 impl Task {
-    pub fn new(id: usize, entry_point: fn() -> !) -> Self {
+    pub fn new_user(id: usize, entry_point: u64, p4_frame: PhysFrame) -> Self {
+        let stack = Box::new([0u8; STACK_SIZE]);
+        let stack_top = stack.as_ptr() as usize + STACK_SIZE;
+        let stack_top = stack_top & !0xF;
+        let rsp = Self::init_stack(stack_top, entry_point);
+
+        Self {
+            id,
+            state: TaskState::Ready,
+            stack_pointer: VirtAddr::new(rsp as u64),
+            p4_frame: Some(p4_frame),
+            _stack: stack,
+        }
+    }
+    pub fn new_kernel_with_entry(id: usize, entry_point: fn() -> !) -> Self {
         let stack = Box::new([0u8; STACK_SIZE]);
         let stack_top = stack.as_ptr() as usize + STACK_SIZE;
         let stack_top = stack_top & !0xF;
@@ -33,6 +48,7 @@ impl Task {
             id,
             state: TaskState::Ready,
             stack_pointer: VirtAddr::new(rsp as u64),
+            p4_frame: None,
             _stack: stack,
         }
     }
@@ -47,24 +63,24 @@ impl Task {
         }
 
         unsafe {
-            push(&mut rsp, 0); //alignment padding (makes rsp 8-mod-16 after ret)
-            push(&mut rsp, entry); //rip
-            push(&mut rsp, 0); //rax
-            push(&mut rsp, 0); //rbx
-            push(&mut rsp, 0); //rcx
-            push(&mut rsp, 0); //rdx
-            push(&mut rsp, 0); //rsi
-            push(&mut rsp, 0); //rdi
-            push(&mut rsp, 0); //rbp
-            push(&mut rsp, 0); //r8
-            push(&mut rsp, 0); //r9
-            push(&mut rsp, 0); //r10
-            push(&mut rsp, 0); //r11
-            push(&mut rsp, 0); //r12
-            push(&mut rsp, 0); //r13
-            push(&mut rsp, 0); //r14
-            push(&mut rsp, 0); //r15
-            push(&mut rsp, 0x200); //rflags
+            push(&mut rsp, 0);
+            push(&mut rsp, entry);
+            push(&mut rsp, 0);
+            push(&mut rsp, 0);
+            push(&mut rsp, 0);
+            push(&mut rsp, 0);
+            push(&mut rsp, 0);
+            push(&mut rsp, 0);
+            push(&mut rsp, 0);
+            push(&mut rsp, 0);
+            push(&mut rsp, 0);
+            push(&mut rsp, 0);
+            push(&mut rsp, 0);
+            push(&mut rsp, 0);
+            push(&mut rsp, 0);
+            push(&mut rsp, 0);
+            push(&mut rsp, 0);
+            push(&mut rsp, 0x200);
         }
 
         rsp
@@ -74,6 +90,7 @@ impl Task {
             id: usize::MAX,
             state: TaskState::Running,
             stack_pointer: VirtAddr::new(0),
+            p4_frame: None,
             _stack: Box::new([0u8; STACK_SIZE]),
         }
     }

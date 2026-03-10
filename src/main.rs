@@ -31,6 +31,14 @@ use core::panic::PanicInfo;
 
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
+    x86_64::instructions::interrupts::disable();
     println!("\x03KERNEL PANIC --- {}", _info);
-    hlt_loop();
+    if let Some(mut guard) = reki_os::shell::shell::SHELL.try_lock() {
+        if let Some(shell) = guard.as_mut() {
+            shell.flush();
+        }
+    }
+    loop {
+        x86_64::instructions::hlt();
+    }
 }

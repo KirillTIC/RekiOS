@@ -3,8 +3,9 @@
 
 use bootloader_api::info::MemoryRegions;
 use shell::shell::SHELL;
-use spin::Once;
+use spin::{Mutex, Once};
 use x86_64::VirtAddr;
+use x86_64::structures::paging::OffsetPageTable;
 
 pub mod arch;
 pub mod display;
@@ -13,11 +14,21 @@ pub mod memory;
 pub mod shell;
 pub mod task;
 
+static HELLO_PROGRAM: &[u8] = include_bytes!(
+    "../programs/my_first_program/target/x86_64-unknown-none/release/my_first_program"
+);
 static MEMORY_REGIONS: Once<&'static MemoryRegions> = Once::new();
+static PHYS_OFFSET: Once<VirtAddr> = Once::new();
+static FRAME_ALLOCATOR: Once<Mutex<memory::frame_allocator::BumpFrameAllocator>> = Once::new();
+
+pub fn phys_offset() -> VirtAddr {
+    *PHYS_OFFSET.get().expect("PHYS_OFFSET not initialized")
+}
 
 pub fn init(boot_info: &'static mut bootloader_api::BootInfo) {
     MEMORY_REGIONS.call_once(|| &boot_info.memory_regions);
     let phys_offset = VirtAddr::new(boot_info.physical_memory_offset.into_option().unwrap());
+    PHYS_OFFSET.call_once(|| phys_offset);
     let memory_regions = &boot_info.memory_regions;
     let framebuffer = boot_info.framebuffer.as_mut().unwrap();
 
@@ -28,6 +39,14 @@ pub fn init(boot_info: &'static mut bootloader_api::BootInfo) {
     arch::gdt::init();
     arch::interrupts::init();
 
+    let sels = arch::gdt::selectors();
+    arch::syscall::init_syscalls(
+        sels.kernel_code,
+        sels.kernel_data,
+        sels.user_code,
+        sels.user_data,
+    );
+
     let mut page_table = unsafe { memory::page_table::init(phys_offset) };
     let mut frame_allocator =
         unsafe { memory::frame_allocator::BumpFrameAllocator::new(memory_regions) };
@@ -35,18 +54,40 @@ pub fn init(boot_info: &'static mut bootloader_api::BootInfo) {
     memory::heap::init(&mut page_table, &mut frame_allocator);
     shell::shell::init(display::framebuffer::FrameBuffer::new(framebuffer));
 
-    task::scheduler::SCHEDULER.lock().add_task(my_first_task);
+    FRAME_ALLOCATOR.call_once(|| Mutex::new(frame_allocator));
+
     task::task::init();
+
+    {
+        let mut fa = FRAME_ALLOCATOR.get().unwrap().lock();
+        let p4_frame =
+            unsafe { memory::process_memory::create_user_page_table(phys_offset, &mut *fa) };
+
+        let user_p4_virt = phys_offset + p4_frame.start_address().as_u64();
+        let user_p4 =
+            unsafe { &mut *(user_p4_virt.as_mut_ptr::<x86_64::structures::paging::PageTable>()) };
+        let mut user_pt = unsafe { OffsetPageTable::new(user_p4, phys_offset) };
+
+        let entry = task::elf_loader::load_elf(HELLO_PROGRAM, &mut user_pt, &mut *fa, phys_offset);
+
+        let user_stack_base = VirtAddr::new(0x7FFF_FFFF_0000);
+        let user_stack_size = 4096 * 8;
+        unsafe {
+            memory::process_memory::map_user_segment(
+                &mut user_pt,
+                &mut *fa,
+                user_stack_base,
+                user_stack_size,
+            );
+        }
+
+        task::scheduler::SCHEDULER
+            .lock()
+            .add_user_task(entry, p4_frame);
+    }
+
     task::scheduler::start();
     x86_64::instructions::interrupts::enable();
-}
-
-fn my_first_task() -> ! {
-    println!("Hello from first task!");
-    loop {
-        task::scheduler::yield_now();
-        x86_64::instructions::hlt();
-    }
 }
 
 pub fn hlt_loop() -> ! {

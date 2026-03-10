@@ -8,7 +8,6 @@ lazy_static! {
     static ref IDT: InterruptDescriptorTable = {
         let mut idt = InterruptDescriptorTable::new();
 
-        // CPU exceptions
         idt.divide_error.set_handler_fn(divide_error_handler);
         idt.debug.set_handler_fn(debug_handler);
         idt.non_maskable_interrupt.set_handler_fn(nmi_handler);
@@ -33,7 +32,6 @@ lazy_static! {
         idt.simd_floating_point.set_handler_fn(simd_floating_point_handler);
         idt.virtualization.set_handler_fn(virtualization_handler);
 
-        //PIC interrupts
         idt[pic::InterruptIndex::Timer.as_u8()].set_handler_fn(timer::timer_interrupt_handler);
         idt[pic::InterruptIndex::Keyboard.as_u8()].set_handler_fn(keyboard::keyboard_interrupt_handler);
 

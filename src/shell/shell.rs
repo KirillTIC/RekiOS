@@ -34,7 +34,6 @@ impl Shell {
             input_buffer: String::from(""),
             cursor_visible: true,
         };
-        shell.str_buffer[0].push(('H', (255, 255, 255)));
         shell.render();
         shell.fb.swap();
         shell

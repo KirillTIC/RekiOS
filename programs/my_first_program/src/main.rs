@@ -8,9 +8,9 @@ pub extern "C" fn _start() -> ! {
             "mov rsi, {msg}",
             "mov rax, 0",
             "mov rdi, 1",
-            "mov rdx, 21",
+            "mov rdx, 22",
             "syscall",
-            msg = in(reg) b"Hello from userspace!".as_ptr(),
+            msg = in(reg) b"Hello from userspace!\n ".as_ptr(),
         );
         core::arch::asm!("mov rax, 1", "mov rdi, 0", "syscall",);
     }

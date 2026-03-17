@@ -104,17 +104,48 @@ fn load_segment(
     }
 
     let seg_data = &elf_data[phdr.p_offset as usize..(phdr.p_offset + phdr.p_filesz) as usize];
-    let dest_ptr = (phys_offset.as_u64() + virt_to_phys(page_table, phdr.p_vaddr)) as *mut u8;
-    unsafe {
-        core::ptr::copy_nonoverlapping(seg_data.as_ptr(), dest_ptr, seg_data.len());
-        let bss_size = (phdr.p_memsz - phdr.p_filesz) as usize;
-        if bss_size > 0 {
-            core::ptr::write_bytes(dest_ptr.add(seg_data.len()), 0, bss_size);
+    let seg_start = phdr.p_vaddr;
+    let filesz = phdr.p_filesz as usize;
+    let _memsz = phdr.p_memsz as usize;
+
+    for page in Page::range_inclusive(start_page, end_page) {
+        let page_vaddr = page.start_address().as_u64();
+        let page_phys = virt_to_phys(page_table, page_vaddr);
+        let dest = (phys_offset.as_u64() + page_phys) as *mut u8;
+
+        unsafe {
+            core::ptr::write_bytes(dest, 0, 4096);
+        }
+
+        let page_end = page_vaddr + 4096;
+        let overlap_start = if page_vaddr > seg_start {
+            page_vaddr
+        } else {
+            seg_start
+        };
+        let seg_file_end = seg_start + filesz as u64;
+        let overlap_end = if page_end < seg_file_end {
+            page_end
+        } else {
+            seg_file_end
+        };
+
+        if overlap_start < overlap_end {
+            let dst_off = (overlap_start - page_vaddr) as usize;
+            let src_off = (overlap_start - seg_start) as usize;
+            let count = (overlap_end - overlap_start) as usize;
+            unsafe {
+                core::ptr::copy_nonoverlapping(
+                    seg_data.as_ptr().add(src_off),
+                    dest.add(dst_off),
+                    count,
+                );
+            }
         }
     }
 }
 
-fn virt_to_phys(page_table: &OffsetPageTable, vaddr: u64) -> u64 {
+pub fn virt_to_phys(page_table: &OffsetPageTable, vaddr: u64) -> u64 {
     use x86_64::structures::paging::Translate;
     match page_table.translate(VirtAddr::new(vaddr)) {
         x86_64::structures::paging::mapper::TranslateResult::Mapped { frame, offset, .. } => {

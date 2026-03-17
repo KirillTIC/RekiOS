@@ -25,10 +25,19 @@ pub enum TaskState {
 }
 impl Task {
     pub fn new_user(id: usize, entry_point: u64, p4_frame: PhysFrame) -> Self {
+        Self::new_user_with_args(id, entry_point, p4_frame, 0, 0)
+    }
+    pub fn new_user_with_args(
+        id: usize,
+        entry_point: u64,
+        p4_frame: PhysFrame,
+        rdi: u64,
+        rsi: u64,
+    ) -> Self {
         let stack = Box::new([0u8; STACK_SIZE]);
         let stack_top = stack.as_ptr() as usize + STACK_SIZE;
         let stack_top = stack_top & !0xF;
-        let rsp = Self::init_stack(stack_top, entry_point);
+        let rsp = Self::init_stack(stack_top, entry_point, rdi, rsi);
 
         Self {
             id,
@@ -42,7 +51,7 @@ impl Task {
         let stack = Box::new([0u8; STACK_SIZE]);
         let stack_top = stack.as_ptr() as usize + STACK_SIZE;
         let stack_top = stack_top & !0xF;
-        let rsp = Self::init_stack(stack_top, entry_point as u64);
+        let rsp = Self::init_stack(stack_top, entry_point as u64, 0, 0);
 
         Self {
             id,
@@ -52,7 +61,7 @@ impl Task {
             _stack: stack,
         }
     }
-    fn init_stack(stack_top: usize, entry: u64) -> usize {
+    fn init_stack(stack_top: usize, entry: u64, rdi: u64, rsi: u64) -> usize {
         let mut rsp = stack_top;
 
         unsafe fn push(rsp: &mut usize, val: u64) {
@@ -63,24 +72,24 @@ impl Task {
         }
 
         unsafe {
-            push(&mut rsp, 0);
-            push(&mut rsp, entry);
-            push(&mut rsp, 0);
-            push(&mut rsp, 0);
-            push(&mut rsp, 0);
-            push(&mut rsp, 0);
-            push(&mut rsp, 0);
-            push(&mut rsp, 0);
-            push(&mut rsp, 0);
-            push(&mut rsp, 0);
-            push(&mut rsp, 0);
-            push(&mut rsp, 0);
-            push(&mut rsp, 0);
-            push(&mut rsp, 0);
-            push(&mut rsp, 0);
-            push(&mut rsp, 0);
-            push(&mut rsp, 0);
-            push(&mut rsp, 0x200);
+            push(&mut rsp, 0);          // alignment
+            push(&mut rsp, entry);      // return address
+            push(&mut rsp, 0);          // rax
+            push(&mut rsp, 0);          // rbx
+            push(&mut rsp, 0);          // rcx
+            push(&mut rsp, 0);          // rdx
+            push(&mut rsp, rsi);        // rsi
+            push(&mut rsp, rdi);        // rdi
+            push(&mut rsp, 0);          // rbp
+            push(&mut rsp, 0);          // r8
+            push(&mut rsp, 0);          // r9
+            push(&mut rsp, 0);          // r10
+            push(&mut rsp, 0);          // r11
+            push(&mut rsp, 0);          // r12
+            push(&mut rsp, 0);          // r13
+            push(&mut rsp, 0);          // r14
+            push(&mut rsp, 0);          // r15
+            push(&mut rsp, 0x200);      // RFLAGS
         }
 
         rsp

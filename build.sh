@@ -10,6 +10,9 @@ set -e
 KERNEL="target/x86_64-reki_os/debug/reki_os"
 IMAGE="target/uefi.img"
 
+echo "Building userspace programs..."
+cd programs/calc && cargo +nightly build --release && cd ../..
+
 echo "Building kernel..."
 cargo +nightly build -Z build-std=core,compiler_builtins,alloc -Z build-std-features=compiler-builtins-mem
 

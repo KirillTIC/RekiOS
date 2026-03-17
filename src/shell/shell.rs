@@ -140,13 +140,16 @@ impl Shell {
                         CommandResult::Output(s) => {
                             self.puts(s);
                             self.set_color(255, 255, 255);
+                            self.write_char('\n');
                         }
                         CommandResult::Clear => {
                             self.clear(0, 0, 0);
                         }
-                        CommandResult::None => {}
+                        CommandResult::Spawned => {}
+                        CommandResult::None => {
+                            self.write_char('\n');
+                        }
                     }
-                    self.write_char('\n');
                     self.input_buffer.clear();
                 } else {
                     self.write_char('\n');

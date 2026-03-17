@@ -39,6 +39,18 @@ impl Scheduler {
         self.next_id += 1;
         self.tasks.push(Task::new_user(id, entry, p4_frame))
     }
+    pub fn add_user_task_with_args(
+        &mut self,
+        entry: u64,
+        p4_frame: PhysFrame,
+        rdi: u64,
+        rsi: u64,
+    ) {
+        let id = self.next_id;
+        self.next_id += 1;
+        self.tasks
+            .push(Task::new_user_with_args(id, entry, p4_frame, rdi, rsi))
+    }
     pub fn mark_current_dead(&mut self) {
         self.tasks[self.current].state = TaskState::Dead;
     }

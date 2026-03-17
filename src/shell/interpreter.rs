@@ -10,6 +10,7 @@ use x86_64::instructions::port::Port;
 pub enum CommandResult {
     Output(String),
     Clear,
+    Spawned,
     None,
 }
 
@@ -20,11 +21,16 @@ pub fn read(command: &String) -> CommandResult {
 
     match cmd {
         "help" => CommandResult::Output(format!(
-            "\x02Commands: help, echo, clear, fetch, reboot, halt (Only QEMU/Bochs)"
+            "\x02Commands: help, echo, clear, fetch, calc, reboot, halt (Only QEMU/Bochs)"
         )),
         "echo" => CommandResult::Output(args.join(" ")),
         "clear" => CommandResult::Clear,
         "fetch" => CommandResult::Output(fetch()),
+        "calc" => {
+            let expr = args.join(" ");
+            crate::spawn_calc(&expr);
+            CommandResult::Spawned
+        }
         "reboot" => reboot(),
         "halt" => halt(),
         _ => CommandResult::Output(format!("\x03Unkown command: {}", cmd)),

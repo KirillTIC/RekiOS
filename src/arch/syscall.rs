@@ -107,7 +107,9 @@ fn sys_write(fd: u64, buf_ptr: u64, len: u64) -> i64 {
 }
 
 fn sys_exit(code: i64) -> i64 {
-    print!("Process exited with code {}\n", code);
+    if code != 0 {
+        print!("Process exited with code {}\n", code);
+    }
     crate::task::scheduler::SCHEDULER.lock().mark_current_dead();
     crate::task::scheduler::yield_now();
     x86_64::instructions::interrupts::enable();

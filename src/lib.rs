@@ -17,12 +17,40 @@ pub mod task;
 static HELLO_PROGRAM: &[u8] = include_bytes!(
     "../programs/my_first_program/target/x86_64-unknown-none/release/my_first_program"
 );
+static CALC_PROGRAM: &[u8] =
+    include_bytes!("../programs/calc/target/x86_64-unknown-none/release/calc");
 static MEMORY_REGIONS: Once<&'static MemoryRegions> = Once::new();
 static PHYS_OFFSET: Once<VirtAddr> = Once::new();
 static FRAME_ALLOCATOR: Once<Mutex<memory::frame_allocator::BumpFrameAllocator>> = Once::new();
 
 pub fn phys_offset() -> VirtAddr {
     *PHYS_OFFSET.get().expect("PHYS_OFFSET not initialized")
+}
+
+pub fn serial_print(s: &str) {
+    use x86_64::instructions::port::Port;
+    let mut port = unsafe { Port::new(0x3F8) };
+    for &b in s.as_bytes() {
+        unsafe {
+            port.write(b);
+        }
+    }
+}
+
+pub fn serial_hex(val: u64) {
+    use x86_64::instructions::port::Port;
+    let mut port = unsafe { Port::new(0x3F8) };
+    let hex = b"0123456789abcdef";
+    unsafe {
+        port.write(b'0');
+        port.write(b'x');
+    }
+    for i in (0..16).rev() {
+        let nibble = ((val >> (i * 4)) & 0xF) as usize;
+        unsafe {
+            port.write(hex[nibble]);
+        }
+    }
 }
 
 pub fn init(boot_info: &'static mut bootloader_api::BootInfo) {
@@ -88,6 +116,71 @@ pub fn init(boot_info: &'static mut bootloader_api::BootInfo) {
 
     task::scheduler::start();
     x86_64::instructions::interrupts::enable();
+}
+
+const ARGS_PAGE_ADDR: u64 = 0x7000_0000_0000;
+
+pub fn spawn_user_program(elf_data: &[u8], args: &str) {
+    serial_print("[spawn] start\n");
+    let phys_offset = phys_offset();
+    let mut fa = FRAME_ALLOCATOR.get().unwrap().lock();
+
+    serial_print("[spawn] creating page table\n");
+    let p4_frame =
+        unsafe { memory::process_memory::create_user_page_table(phys_offset, &mut *fa) };
+
+    let user_p4_virt = phys_offset + p4_frame.start_address().as_u64();
+    let user_p4 =
+        unsafe { &mut *(user_p4_virt.as_mut_ptr::<x86_64::structures::paging::PageTable>()) };
+    let mut user_pt = unsafe { OffsetPageTable::new(user_p4, phys_offset) };
+
+    serial_print("[spawn] loading elf\n");
+    let entry = task::elf_loader::load_elf(elf_data, &mut user_pt, &mut *fa, phys_offset);
+    serial_print("[spawn] elf entry: ");
+    serial_hex(entry);
+    serial_print("\n");
+
+    let user_stack_base = VirtAddr::new(0x7FFF_FFFF_0000);
+    let user_stack_size = 4096 * 8;
+    unsafe {
+        memory::process_memory::map_user_segment(
+            &mut user_pt,
+            &mut *fa,
+            user_stack_base,
+            user_stack_size,
+        );
+    }
+    serial_print("[spawn] stack mapped\n");
+
+    let args_bytes = args.as_bytes();
+    let (rdi, rsi) = if !args_bytes.is_empty() {
+        unsafe {
+            memory::process_memory::map_user_segment(
+                &mut user_pt,
+                &mut *fa,
+                VirtAddr::new(ARGS_PAGE_ADDR),
+                4096,
+            );
+        }
+        let args_phys = task::elf_loader::virt_to_phys(&user_pt, ARGS_PAGE_ADDR);
+        let dest = (phys_offset.as_u64() + args_phys) as *mut u8;
+        unsafe {
+            core::ptr::copy_nonoverlapping(args_bytes.as_ptr(), dest, args_bytes.len());
+        }
+        (ARGS_PAGE_ADDR, args_bytes.len() as u64)
+    } else {
+        (0u64, 0u64)
+    };
+    serial_print("[spawn] args copied\n");
+
+    task::scheduler::SCHEDULER
+        .lock()
+        .add_user_task_with_args(entry, p4_frame, rdi, rsi);
+    serial_print("[spawn] task added, done\n");
+}
+
+pub fn spawn_calc(args: &str) {
+    spawn_user_program(CALC_PROGRAM, args);
 }
 
 pub fn hlt_loop() -> ! {

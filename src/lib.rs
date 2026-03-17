@@ -27,31 +27,6 @@ pub fn phys_offset() -> VirtAddr {
     *PHYS_OFFSET.get().expect("PHYS_OFFSET not initialized")
 }
 
-pub fn serial_print(s: &str) {
-    use x86_64::instructions::port::Port;
-    let mut port = unsafe { Port::new(0x3F8) };
-    for &b in s.as_bytes() {
-        unsafe {
-            port.write(b);
-        }
-    }
-}
-
-pub fn serial_hex(val: u64) {
-    use x86_64::instructions::port::Port;
-    let mut port = unsafe { Port::new(0x3F8) };
-    let hex = b"0123456789abcdef";
-    unsafe {
-        port.write(b'0');
-        port.write(b'x');
-    }
-    for i in (0..16).rev() {
-        let nibble = ((val >> (i * 4)) & 0xF) as usize;
-        unsafe {
-            port.write(hex[nibble]);
-        }
-    }
-}
 
 pub fn init(boot_info: &'static mut bootloader_api::BootInfo) {
     MEMORY_REGIONS.call_once(|| &boot_info.memory_regions);
@@ -121,11 +96,9 @@ pub fn init(boot_info: &'static mut bootloader_api::BootInfo) {
 const ARGS_PAGE_ADDR: u64 = 0x7000_0000_0000;
 
 pub fn spawn_user_program(elf_data: &[u8], args: &str) {
-    serial_print("[spawn] start\n");
     let phys_offset = phys_offset();
     let mut fa = FRAME_ALLOCATOR.get().unwrap().lock();
 
-    serial_print("[spawn] creating page table\n");
     let p4_frame =
         unsafe { memory::process_memory::create_user_page_table(phys_offset, &mut *fa) };
 
@@ -134,11 +107,7 @@ pub fn spawn_user_program(elf_data: &[u8], args: &str) {
         unsafe { &mut *(user_p4_virt.as_mut_ptr::<x86_64::structures::paging::PageTable>()) };
     let mut user_pt = unsafe { OffsetPageTable::new(user_p4, phys_offset) };
 
-    serial_print("[spawn] loading elf\n");
     let entry = task::elf_loader::load_elf(elf_data, &mut user_pt, &mut *fa, phys_offset);
-    serial_print("[spawn] elf entry: ");
-    serial_hex(entry);
-    serial_print("\n");
 
     let user_stack_base = VirtAddr::new(0x7FFF_FFFF_0000);
     let user_stack_size = 4096 * 8;
@@ -150,7 +119,6 @@ pub fn spawn_user_program(elf_data: &[u8], args: &str) {
             user_stack_size,
         );
     }
-    serial_print("[spawn] stack mapped\n");
 
     let args_bytes = args.as_bytes();
     let (rdi, rsi) = if !args_bytes.is_empty() {
@@ -171,12 +139,10 @@ pub fn spawn_user_program(elf_data: &[u8], args: &str) {
     } else {
         (0u64, 0u64)
     };
-    serial_print("[spawn] args copied\n");
 
     task::scheduler::SCHEDULER
         .lock()
         .add_user_task_with_args(entry, p4_frame, rdi, rsi);
-    serial_print("[spawn] task added, done\n");
 }
 
 pub fn spawn_calc(args: &str) {

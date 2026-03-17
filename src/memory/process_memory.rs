@@ -23,10 +23,61 @@ pub unsafe fn create_user_page_table(
         let kernel_p4_virt = physical_memory_offset + kernel_p4_frame.start_address().as_u64();
         let kernel_p4: &PageTable = &*(kernel_p4_virt.as_ptr());
 
-        for i in 0..512 {
+        // Upper half (kernel space): share directly
+        for i in 256..512 {
             if !kernel_p4[i].is_unused() {
                 p4[i] = kernel_p4[i].clone();
             }
+        }
+
+        // Lower half: deep-copy P3 and P2 tables so each process
+        // gets its own copies and map_to won't pollute shared tables
+        for i in 0..256 {
+            if kernel_p4[i].is_unused() {
+                continue;
+            }
+            let kernel_p3_phys = kernel_p4[i].frame().unwrap().start_address().as_u64();
+            let kernel_p3: &PageTable =
+                &*((physical_memory_offset + kernel_p3_phys).as_ptr());
+
+            let user_p3_frame = frame_allocator
+                .allocate_frame()
+                .expect("No frame for user P3");
+            let user_p3: &mut PageTable =
+                &mut *((physical_memory_offset + user_p3_frame.start_address().as_u64())
+                    .as_mut_ptr());
+            user_p3.zero();
+
+            for j in 0..512 {
+                if kernel_p3[j].is_unused() {
+                    continue;
+                }
+                if kernel_p3[j].flags().contains(PageTableFlags::HUGE_PAGE) {
+                    user_p3[j] = kernel_p3[j].clone();
+                    continue;
+                }
+
+                let kernel_p2_phys = kernel_p3[j].frame().unwrap().start_address().as_u64();
+                let kernel_p2: &PageTable =
+                    &*((physical_memory_offset + kernel_p2_phys).as_ptr());
+
+                let user_p2_frame = frame_allocator
+                    .allocate_frame()
+                    .expect("No frame for user P2");
+                let user_p2: &mut PageTable = &mut *((physical_memory_offset
+                    + user_p2_frame.start_address().as_u64())
+                .as_mut_ptr());
+
+                core::ptr::copy_nonoverlapping(
+                    kernel_p2 as *const PageTable,
+                    user_p2 as *mut PageTable,
+                    1,
+                );
+
+                user_p3[j].set_frame(user_p2_frame, kernel_p3[j].flags());
+            }
+
+            p4[i].set_frame(user_p3_frame, kernel_p4[i].flags());
         }
 
         p4_frame

@@ -143,6 +143,8 @@ pub fn spawn_user_program(elf_data: &[u8], args: &str) {
     task::scheduler::SCHEDULER
         .lock()
         .add_user_task_with_args(entry, p4_frame, rdi, rsi);
+
+    task::scheduler::yield_now();
 }
 
 pub fn spawn_calc(args: &str) {

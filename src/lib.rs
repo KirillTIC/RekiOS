@@ -27,7 +27,6 @@ pub fn phys_offset() -> VirtAddr {
     *PHYS_OFFSET.get().expect("PHYS_OFFSET not initialized")
 }
 
-
 pub fn init(boot_info: &'static mut bootloader_api::BootInfo) {
     MEMORY_REGIONS.call_once(|| &boot_info.memory_regions);
     let phys_offset = VirtAddr::new(boot_info.physical_memory_offset.into_option().unwrap());
@@ -94,13 +93,23 @@ pub fn init(boot_info: &'static mut bootloader_api::BootInfo) {
 }
 
 const ARGS_PAGE_ADDR: u64 = 0x7000_0000_0000;
+const ARGS_PAGE_SIZE: usize = 4096;
 
 pub fn spawn_user_program(elf_data: &[u8], args: &str) {
+    let args_bytes = args.as_bytes();
+    if args_bytes.len() > ARGS_PAGE_SIZE {
+        println!(
+            "spawn_user_program: args too long ({} > {} bytes)",
+            args_bytes.len(),
+            ARGS_PAGE_SIZE
+        );
+        return;
+    }
+
     let phys_offset = phys_offset();
     let mut fa = FRAME_ALLOCATOR.get().unwrap().lock();
 
-    let p4_frame =
-        unsafe { memory::process_memory::create_user_page_table(phys_offset, &mut *fa) };
+    let p4_frame = unsafe { memory::process_memory::create_user_page_table(phys_offset, &mut *fa) };
 
     let user_p4_virt = phys_offset + p4_frame.start_address().as_u64();
     let user_p4 =
@@ -120,14 +129,13 @@ pub fn spawn_user_program(elf_data: &[u8], args: &str) {
         );
     }
 
-    let args_bytes = args.as_bytes();
     let (rdi, rsi) = if !args_bytes.is_empty() {
         unsafe {
             memory::process_memory::map_user_segment(
                 &mut user_pt,
                 &mut *fa,
                 VirtAddr::new(ARGS_PAGE_ADDR),
-                4096,
+                ARGS_PAGE_SIZE as u64,
             );
         }
         let args_phys = task::elf_loader::virt_to_phys(&user_pt, ARGS_PAGE_ADDR);

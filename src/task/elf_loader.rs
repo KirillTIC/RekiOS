@@ -1,8 +1,6 @@
 use x86_64::{
     VirtAddr,
-    structures::paging::{
-        FrameAllocator, Mapper, OffsetPageTable, Page, PageTableFlags, Size4KiB,
-    },
+    structures::paging::{FrameAllocator, Mapper, OffsetPageTable, Page, PageTableFlags, Size4KiB},
 };
 
 const ELF_MAGIC: [u8; 4] = [0x7F, b'E', b'L', b'F'];
@@ -46,7 +44,10 @@ pub fn load_elf(
     frame_allocator: &mut impl FrameAllocator<Size4KiB>,
     phys_offset: VirtAddr,
 ) -> u64 {
-    assert!(elf_data.len() >= core::mem::size_of::<Elf64Header>(), "ELF too small");
+    assert!(
+        elf_data.len() >= core::mem::size_of::<Elf64Header>(),
+        "ELF too small"
+    );
 
     let header = unsafe { &*(elf_data.as_ptr() as *const Elf64Header) };
     assert_eq!(&header.e_ident[0..4], &ELF_MAGIC, "Not an ELF file");
@@ -58,7 +59,10 @@ pub fn load_elf(
 
     for i in 0..ph_num {
         let offset = ph_offset + i * ph_size;
-        assert!(offset + ph_size <= elf_data.len(), "Program header out of bounds");
+        assert!(
+            offset + ph_size <= elf_data.len(),
+            "Program header out of bounds"
+        );
 
         let phdr = unsafe { &*(elf_data.as_ptr().add(offset) as *const Elf64Phdr) };
         if phdr.p_type != PT_LOAD {

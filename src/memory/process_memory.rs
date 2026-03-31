@@ -37,15 +37,14 @@ pub unsafe fn create_user_page_table(
                 continue;
             }
             let kernel_p3_phys = kernel_p4[i].frame().unwrap().start_address().as_u64();
-            let kernel_p3: &PageTable =
-                &*((physical_memory_offset + kernel_p3_phys).as_ptr());
+            let kernel_p3: &PageTable = &*((physical_memory_offset + kernel_p3_phys).as_ptr());
 
             let user_p3_frame = frame_allocator
                 .allocate_frame()
                 .expect("No frame for user P3");
-            let user_p3: &mut PageTable =
-                &mut *((physical_memory_offset + user_p3_frame.start_address().as_u64())
-                    .as_mut_ptr());
+            let user_p3: &mut PageTable = &mut *((physical_memory_offset
+                + user_p3_frame.start_address().as_u64())
+            .as_mut_ptr());
             user_p3.zero();
 
             for j in 0..512 {
@@ -58,8 +57,7 @@ pub unsafe fn create_user_page_table(
                 }
 
                 let kernel_p2_phys = kernel_p3[j].frame().unwrap().start_address().as_u64();
-                let kernel_p2: &PageTable =
-                    &*((physical_memory_offset + kernel_p2_phys).as_ptr());
+                let kernel_p2: &PageTable = &*((physical_memory_offset + kernel_p2_phys).as_ptr());
 
                 let user_p2_frame = frame_allocator
                     .allocate_frame()

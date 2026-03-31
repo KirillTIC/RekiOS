@@ -72,24 +72,24 @@ impl Task {
         }
 
         unsafe {
-            push(&mut rsp, 0);          // alignment
-            push(&mut rsp, entry);      // return address
-            push(&mut rsp, 0);          // rax
-            push(&mut rsp, 0);          // rbx
-            push(&mut rsp, 0);          // rcx
-            push(&mut rsp, 0);          // rdx
-            push(&mut rsp, rsi);        // rsi
-            push(&mut rsp, rdi);        // rdi
-            push(&mut rsp, 0);          // rbp
-            push(&mut rsp, 0);          // r8
-            push(&mut rsp, 0);          // r9
-            push(&mut rsp, 0);          // r10
-            push(&mut rsp, 0);          // r11
-            push(&mut rsp, 0);          // r12
-            push(&mut rsp, 0);          // r13
-            push(&mut rsp, 0);          // r14
-            push(&mut rsp, 0);          // r15
-            push(&mut rsp, 0x200);      // RFLAGS
+            push(&mut rsp, 0); // alignment
+            push(&mut rsp, entry); // return address
+            push(&mut rsp, 0); // rax
+            push(&mut rsp, 0); // rbx
+            push(&mut rsp, 0); // rcx
+            push(&mut rsp, 0); // rdx
+            push(&mut rsp, rsi); // rsi
+            push(&mut rsp, rdi); // rdi
+            push(&mut rsp, 0); // rbp
+            push(&mut rsp, 0); // r8
+            push(&mut rsp, 0); // r9
+            push(&mut rsp, 0); // r10
+            push(&mut rsp, 0); // r11
+            push(&mut rsp, 0); // r12
+            push(&mut rsp, 0); // r13
+            push(&mut rsp, 0); // r14
+            push(&mut rsp, 0); // r15
+            push(&mut rsp, 0x200); // RFLAGS
         }
 
         rsp

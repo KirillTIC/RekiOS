@@ -39,13 +39,7 @@ impl Scheduler {
         self.next_id += 1;
         self.tasks.push(Task::new_user(id, entry, p4_frame))
     }
-    pub fn add_user_task_with_args(
-        &mut self,
-        entry: u64,
-        p4_frame: PhysFrame,
-        rdi: u64,
-        rsi: u64,
-    ) {
+    pub fn add_user_task_with_args(&mut self, entry: u64, p4_frame: PhysFrame, rdi: u64, rsi: u64) {
         let id = self.next_id;
         self.next_id += 1;
         self.tasks
@@ -55,7 +49,11 @@ impl Scheduler {
         self.tasks[self.current].state = TaskState::Dead;
     }
     pub fn cleanup_dead(&mut self) {
+        let current_id = self.tasks.get(self.current).map(|t| t.id);
         self.tasks.retain(|t| t.state != TaskState::Dead);
+        if let Some(id) = current_id {
+            self.current = self.tasks.iter().position(|t| t.id == id).unwrap_or(0);
+        }
     }
     fn next_task(&self) -> Option<usize> {
         let len = self.tasks.len();
@@ -125,6 +123,15 @@ impl Scheduler {
 pub fn yield_now() {
     x86_64::instructions::interrupts::without_interrupts(|| {
         SCHEDULER.lock().yielded = true;
+    });
+}
+
+pub fn cleanup_dead_and_yield() {
+    x86_64::instructions::interrupts::without_interrupts(|| {
+        if let Some(mut scheduler) = SCHEDULER.try_lock() {
+            scheduler.cleanup_dead();
+            scheduler.yielded = true;
+        }
     });
 }
 

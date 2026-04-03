@@ -24,7 +24,6 @@ struct Elf64Header {
     e_shnum: u16,
     e_shstrndx: u16,
 }
-
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
 struct Elf64Phdr {
@@ -37,6 +36,7 @@ struct Elf64Phdr {
     p_memsz: u64,
     p_align: u64,
 }
+
 
 pub fn load_elf(
     elf_data: &[u8],
@@ -74,6 +74,7 @@ pub fn load_elf(
 
     header.e_entry
 }
+
 
 fn load_segment(
     elf_data: &[u8],

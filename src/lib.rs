@@ -3,6 +3,7 @@
 
 use bootloader_api::info::MemoryRegions;
 use shell::shell::SHELL;
+use drivers::pci;
 use spin::{Mutex, Once};
 use x86_64::VirtAddr;
 use x86_64::structures::paging::OffsetPageTable;
@@ -59,6 +60,12 @@ pub fn init(boot_info: &'static mut bootloader_api::BootInfo) {
     FRAME_ALLOCATOR.call_once(|| Mutex::new(frame_allocator));
 
     task::task::init();
+
+    let ahci = pci::find_ahci_controller()
+        .expect("AHCI controller not found");
+    ahci.enable_bus_mastering();
+    let abar = (ahci.read_bar(5) & 0xFFFFFFF0) as u64;
+    println!("AHCI controller at BAR5: {:#x}", abar);
 
     {
         let mut fa = FRAME_ALLOCATOR.get().unwrap().lock();

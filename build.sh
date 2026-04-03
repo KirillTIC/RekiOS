@@ -26,8 +26,14 @@ cd /tmp && cargo +nightly run \
   -- "$PROJDIR/$KERNEL" "$PROJDIR/$IMAGE"
 cd "$PROJDIR"
 
+echo "Creating disk..."
+qemu-img create -f raw target/disk.img 64M
+
 echo "Launching QEMU..."
 qemu-system-x86_64 \
   -bios /usr/share/ovmf/x64/OVMF.4m.fd \
   -drive format=raw,file="$IMAGE" \
+  -device ahci,id=ahci \
+  -drive id=hd0,file=target/disk.img,if=none,format=raw \
+  -device ide-hd,drive=hd0,bus=ahci.0 \
   -serial stdio

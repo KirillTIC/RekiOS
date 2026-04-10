@@ -12,6 +12,7 @@ IMAGE="target/uefi.img"
 
 echo "Building userspace programs..."
 cd programs/calc && cargo +nightly build --release && cd ../..
+cd programs/my_first_program && cargo +nightly build --release && cd ../..
 
 echo "Building kernel..."
 cargo +nightly build -Z build-std=core,compiler_builtins,alloc -Z build-std-features=compiler-builtins-mem

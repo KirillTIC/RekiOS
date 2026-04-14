@@ -14,6 +14,7 @@ pub mod drivers;
 pub mod memory;
 pub mod shell;
 pub mod task;
+pub mod module;
 
 static HELLO_PROGRAM: &[u8] = include_bytes!(
     "../programs/my_first_program/target/x86_64-unknown-none/release/my_first_program"

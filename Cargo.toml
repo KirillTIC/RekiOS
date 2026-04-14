@@ -11,10 +11,12 @@ panic = "abort"
 
 [[bin]]
 name = "reki_os"
+path = "kernel_src/main.rs"
 test = false
 bench = false
 
 [lib]
+path = "kernel_src/lib.rs"
 test = false
 bench = false
 

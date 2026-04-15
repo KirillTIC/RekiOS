@@ -173,9 +173,19 @@ pub fn hlt_loop() -> ! {
     loop {
         x86_64::instructions::hlt();
 
+        let cmd = x86_64::instructions::interrupts::without_interrupts(|| {
+            SHELL.try_lock()
+                .and_then(|mut g| g.as_mut()?.poll_command())
+        });
+
+        let result = cmd.map(|c| shell::interpreter::read(&c));
+
         x86_64::instructions::interrupts::without_interrupts(|| {
             if let Some(mut guard) = SHELL.try_lock() {
                 if let Some(shell) = guard.as_mut() {
+                    if let Some(r) = result {
+                        shell.handle_result(r);
+                    }
                     shell.flush();
                 }
             }

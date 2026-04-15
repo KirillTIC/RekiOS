@@ -3,7 +3,23 @@ extern crate alloc;
 use alloc::string::String;
 use alloc::vec::Vec;
 use spin::Mutex;
+use x86_64::{VirtAddr, structures::paging::{Mapper, Page, PageTableFlags as Flags, Size4KiB}};
 use super::symbols;
+
+fn make_exec(ptr: *const u8, len: usize) {
+    let phys_off = crate::phys_offset();
+    let mut pt = unsafe { crate::memory::page_table::init(phys_off) };
+    let mut addr = ptr as u64 & !0xFFF;
+    let end = ptr as u64 + len as u64;
+    while addr < end {
+        let page = Page::<Size4KiB>::containing_address(VirtAddr::new(addr));
+        unsafe {
+            let _ = pt.update_flags(page, Flags::PRESENT | Flags::WRITABLE)
+                .map(|flush| flush.flush());
+        }
+        addr += 0x1000;
+    }
+}
 
 #[derive(Clone, Copy, PartialEq,Debug)]
 pub enum ModuleState {
@@ -29,6 +45,7 @@ pub fn unload(name: &str) -> Result<(), &'static str> {
     let exit_fn = reg[pos].exit_fn;
     drop(reg);
     unsafe { exit_fn(); }
+    crate::println!();
     REGISTRY.lock().retain(|m| m.name != name);
     crate::println!("km: unloaded {}", name);
     Ok(())
@@ -51,7 +68,7 @@ const SHT_NOBITS:u32=8; const SHT_SYMTAB:u32=2; const SHT_RELA:u32=4;
 const SHF_ALLOC:u64=2;
 const SHN_UNDEF:u16=0; const SHN_ABS:u16=0xfff1;
 const R_64:u32=1; const R_PC32:u32=2; const R_PLT32:u32=4;
-const R_32S:u32=11; const R_32:u32=10;
+const R_32S:u32=11; const R_32:u32=10; const R_GOTPCREL:u32=9;
 
 fn sec_data<'a>(file: &'a [u8], sh: &Shdr) -> &'a [u8] {
     if sh.sh_type == SHT_NOBITS { return &[]; }
@@ -101,6 +118,20 @@ pub fn load_km(data: &[u8]) -> Result<(String, unsafe extern "C" fn(), Vec<u8>),
     }
     if total == 0 { return Err("no loadable sections"); }
 
+    // Pre-scan for GOTPCREL: collect unique sym indices that need GOT slots
+    let mut got: Vec<usize> = Vec::new(); // got[slot] = sym_idx
+    for sh in &shdrs {
+        if sh.sh_type != SHT_RELA { continue; }
+        for chunk in sec_data(data, sh).chunks_exact(core::mem::size_of::<Rela>()) {
+            let rela = unsafe { &*(chunk.as_ptr() as *const Rela) };
+            if (rela.r_info & 0xFFFF_FFFF) as u32 != R_GOTPCREL { continue; }
+            let si = (rela.r_info >> 32) as usize;
+            if !got.contains(&si) { got.push(si); }
+        }
+    }
+    let got_off = total;
+    total += got.len() * 8; // append mini-GOT after sections
+
     let mut code = alloc::vec![0u8; total];
     let base = code.as_ptr() as u64;
     for (i, sh) in shdrs.iter().enumerate() {
@@ -115,18 +146,48 @@ pub fn load_km(data: &[u8]) -> Result<(String, unsafe extern "C" fn(), Vec<u8>),
         offs.get(i).and_then(|o|*o).map(|o| base+o as u64).unwrap_or(0)
     };
 
+    // Fill mini-GOT with resolved symbol addresses
+    for (slot, &si) in got.iter().enumerate() {
+        let sym = symtab[si];
+        let addr: u64 = if sym.st_shndx == SHN_UNDEF {
+            let name = cstr(strtab, sym.st_name as usize);
+            symbols::lookup(name).ok_or("unknown symbol — not exported by kernel")? as u64
+        } else if sym.st_shndx == SHN_ABS {
+            sym.st_value
+        } else {
+            sec_virt(sym.st_shndx as usize) + sym.st_value
+        };
+        let off = got_off + slot * 8;
+        code[off..off+8].copy_from_slice(&addr.to_le_bytes());
+    }
+
     for sh in &shdrs {
         if sh.sh_type != SHT_RELA { continue; }
-        let tgt_i   = sh.sh_info as usize;
+        let tgt_i    = sh.sh_info as usize;
         let tgt_virt = sec_virt(tgt_i);
         let tgt_off  = offs[tgt_i].unwrap_or(0);
         for chunk in sec_data(data, sh)
             .chunks_exact(core::mem::size_of::<Rela>())
         {
-            let rela = unsafe { &*(chunk.as_ptr() as *const Rela) };
-            let sym_i2  = (rela.r_info >> 32) as usize;
-            let rtype   = (rela.r_info & 0xFFFF_FFFF) as u32;
+            let rela   = unsafe { &*(chunk.as_ptr() as *const Rela) };
+            let sym_i2 = (rela.r_info >> 32) as usize;
+            let rtype  = (rela.r_info & 0xFFFF_FFFF) as u32;
             if rtype == 0 { continue; }
+            let a  = rela.r_addend;
+            let p  = tgt_virt + rela.r_offset;
+            let po = tgt_off  + rela.r_offset as usize;
+
+            // GOTPCREL: PC-relative reference to GOT slot (already filled above)
+            if rtype == R_GOTPCREL {
+                let slot = got.iter().position(|&s| s == sym_i2)
+                    .ok_or("GOTPCREL sym not in GOT")?;
+                let got_entry = base + got_off as u64 + slot as u64 * 8;
+                let d = got_entry as i64 + a - p as i64;
+                let v = i32::try_from(d).map_err(|_| "GOTPCREL overflow")?;
+                code[po..po+4].copy_from_slice(&v.to_le_bytes());
+                continue;
+            }
+
             let sym = symtab[sym_i2];
             let s: u64 = if sym.st_shndx == SHN_UNDEF {
                 let name = cstr(strtab, sym.st_name as usize);
@@ -137,9 +198,6 @@ pub fn load_km(data: &[u8]) -> Result<(String, unsafe extern "C" fn(), Vec<u8>),
             } else {
                 sec_virt(sym.st_shndx as usize) + sym.st_value
             };
-            let a  = rela.r_addend;
-            let p  = tgt_virt + rela.r_offset;
-            let po = tgt_off  + rela.r_offset as usize;
             match rtype {
                 R_64  => {
                     let v = (s as i64 + a) as u64;
@@ -186,8 +244,12 @@ pub fn load_km(data: &[u8]) -> Result<(String, unsafe extern "C" fn(), Vec<u8>),
     let init_addr = init_addr.ok_or("no module_init symbol")?;
     let exit_addr = exit_addr.ok_or("no module_exit symbol")?;
 
+    make_exec(code.as_ptr(), code.len());
+
     let init_fn: extern "C" fn() -> i32 = unsafe { core::mem::transmute(init_addr) };
-    if init_fn() != 0 {
+    let init_ret = init_fn();
+    crate::println!();
+    if init_ret != 0 {
         return Err("module_init() returned non-zero");
     }
     let exit_fn: unsafe extern "C" fn() = unsafe { core::mem::transmute(exit_addr) };

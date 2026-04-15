@@ -2,7 +2,7 @@ extern crate alloc;
 use crate::display::framebuffer::FrameBuffer;
 use crate::display::psf_parser::Psf2Font;
 use crate::drivers::keyboard;
-use crate::shell::interpreter::{self, CommandResult};
+use crate::shell::interpreter::CommandResult;
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -118,11 +118,7 @@ impl Shell {
         self.fg = (r, g, b);
     }
 
-    pub fn flush(&mut self) {
-        if self.fb.dirty {
-            self.render();
-            self.fb.swap();
-        }
+    pub fn poll_command(&mut self) -> Option<String> {
         if let Some(c) = keyboard::pop_key() {
             if c != '\n' && c != 0x08 as char {
                 self.write_char(c);
@@ -134,27 +130,38 @@ impl Shell {
                 }
                 self.fb.dirty = true;
             } else {
-                if self.input_buffer != "" {
-                    self.write_char('\n');
-                    match interpreter::read(&self.input_buffer) {
-                        CommandResult::Output(s) => {
-                            self.puts(s);
-                            self.set_color(255, 255, 255);
-                            self.write_char('\n');
-                        }
-                        CommandResult::Clear => {
-                            self.clear(0, 0, 0);
-                        }
-                        CommandResult::Spawned => {}
-                        CommandResult::None => {
-                            self.write_char('\n');
-                        }
-                    }
+                self.write_char('\n');
+                if !self.input_buffer.is_empty() {
+                    let cmd = self.input_buffer.clone();
                     self.input_buffer.clear();
-                } else {
-                    self.write_char('\n');
+                    return Some(cmd);
                 }
             }
+        }
+        None
+    }
+
+    pub fn handle_result(&mut self, result: CommandResult) {
+        match result {
+            CommandResult::Output(s) => {
+                self.puts(s);
+                self.set_color(255, 255, 255);
+                self.write_char('\n');
+            }
+            CommandResult::Clear => {
+                self.clear(0, 0, 0);
+            }
+            CommandResult::Spawned => {}
+            CommandResult::None => {
+                self.write_char('\n');
+            }
+        }
+    }
+
+    pub fn flush(&mut self) {
+        if self.fb.dirty {
+            self.render();
+            self.fb.swap();
         }
     }
     pub fn clear(&mut self, r: u8, g: u8, b: u8) {

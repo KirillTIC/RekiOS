@@ -21,7 +21,7 @@ pub fn read(command: &String) -> CommandResult {
 
     match cmd {
         "help" => CommandResult::Output(format!(
-            "\x02Commands: help, echo, clear, fetch, calc, reboot, halt (Only QEMU/Bochs), lsmod, rmmod"
+            "\x02Commands: help, echo, clear, fetch, calc, reboot, halt (Only QEMU/Bochs), lsmod, insmod, rmmod"
         )),
         "echo" => CommandResult::Output(args.join(" ")),
         "clear" => CommandResult::Clear,
@@ -34,7 +34,7 @@ pub fn read(command: &String) -> CommandResult {
         "reboot" => reboot(),
         "halt" => halt(),
         "lsmod" => lsmod(),
-        //"insmod" => insmod(args),
+        "insmod" => insmod(args),
         "rmmod"  => rmmod(args),
         _ => CommandResult::Output(format!("\x03Unkown command: {}", cmd)),
     }
@@ -123,7 +123,20 @@ fn lsmod() -> CommandResult {
     }
     CommandResult::Output(out)
 }
-//TODO insmode() AFTER AHCI
+fn insmod(args: &[&str]) -> CommandResult {
+    let Some(name) = args.first() else {
+        return CommandResult::Output(format!("\x03insmod <name>"));
+    };
+    let data: &[u8] = match *name {
+        "hello" => include_bytes!("../../kernel_modules/hello/hello.km"),
+        _ => return CommandResult::Output(format!("\x03insmod: unknown module '{}'", name)),
+    };
+    match crate::module::loader::insmod(data) {
+        Ok(()) => CommandResult::Output(format!("\x02insmod: loaded '{}'", name)),
+        Err(e) => CommandResult::Output(format!("\x03insmod: {}", e)),
+    }
+}
+//TODO insmod() AFTER AHCI (replace with fs-based loading)
 fn rmmod(args: &[&str]) -> CommandResult {
     let Some(name) = args.first() else {
         return CommandResult::Output(format!("\x03rmmod <name>"));

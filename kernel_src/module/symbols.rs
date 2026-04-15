@@ -71,7 +71,7 @@ pub extern "C" fn kernel_alloc_phys_frame_safe() -> u64 {
     //use x86_64::{PhysAddr, structures::paging::PhysFrame};
     //let Some(fa_lock) = crate::FRAME_ALLOCATOR.get() else { return; };  //TODO
     //let mut fa = fa_lock.lock();
-    //let frame = PhysFrame::containing_address(PhysAddr::new(phys));     //TODO
+    //let frame = PhysFrame::containing_address(PhysAddr::new(phys));     //TODO    //AFTER NEW ALLOCATOR
     //fa.deallocate(frame);
 //}                                                                       //TODO
 pub extern "C" fn kernel_phys_to_virt(phys: u64) -> u64 {

@@ -7,6 +7,7 @@ use core::arch::x86_64::__cpuid;
 use core::str;
 use x86_64::instructions::port::Port;
 
+
 pub enum CommandResult {
     Output(String),
     Clear,
@@ -51,7 +52,7 @@ pub fn halt() -> ! {
     }
     loop {}
 }
-pub fn get_cpu_name() -> [u8; 48] {
+fn get_cpu_name() -> [u8; 48] {
     let mut name = [0u8; 48];
     let r1 = __cpuid(0x80000002);
     let r2 = __cpuid(0x80000003);
@@ -68,7 +69,7 @@ pub fn get_cpu_name() -> [u8; 48] {
     }
     name
 }
-pub fn get_total_ram() -> u64 {
+fn get_total_ram() -> u64 {
     crate::MEMORY_REGIONS
         .get()
         .map(|regions| {
@@ -105,3 +106,4 @@ _/   \/__|_   \
         logo, cpu_name, ram
     )
 }
+

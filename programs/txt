@@ -1,0 +1,3 @@
+Userspace programs are located here.
+Most are compiled directly into the kernel via include_bytes!(). The rest are simply source code for programs that will be included in the disk image.
+!!!At the moment, FS and disk are not implemented

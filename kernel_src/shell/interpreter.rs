@@ -21,7 +21,7 @@ pub fn read(command: &String) -> CommandResult {
 
     match cmd {
         "help" => CommandResult::Output(format!(
-            "\x02Commands: help, echo, clear, fetch, calc, reboot, halt (Only QEMU/Bochs)"
+            "\x02Commands: help, echo, clear, fetch, calc, reboot, halt (Only QEMU/Bochs), lsmod, rmmod"
         )),
         "echo" => CommandResult::Output(args.join(" ")),
         "clear" => CommandResult::Clear,
@@ -33,6 +33,9 @@ pub fn read(command: &String) -> CommandResult {
         }
         "reboot" => reboot(),
         "halt" => halt(),
+        "lsmod" => lsmod(),
+        //"insmod" => insmod(args),
+        "rmmod"  => rmmod(args),
         _ => CommandResult::Output(format!("\x03Unkown command: {}", cmd)),
     }
 }
@@ -105,4 +108,28 @@ _/   \/__|_   \
         logo, cpu_name, ram
     )
 }
-
+fn lsmod() -> CommandResult {
+    let mods = crate::module::loader::list();
+    if mods.is_empty() {
+        return CommandResult::Output(format!("\x03(No modules loaded)"));
+    }
+    let mut out = format!("\x02{:<24} {}\x01\n", "Name", "State");
+    for (name, state) in &mods {
+        let st = match state {
+            crate::module::loader::ModuleState::Live => "\x02live\x01",
+            crate::module::loader::ModuleState::Failed => "\x03failed\x01",
+        };
+        out += &format!("   {:<24} {}\n", name, st);
+    }
+    CommandResult::Output(out)
+}
+//TODO insmode() AFTER AHCI
+fn rmmod(args: &[&str]) -> CommandResult {
+    let Some(name) = args.first() else {
+        return CommandResult::Output(format!("\x03rmmod <name>"));
+    };
+    match crate::module::loader::unload(name) {
+        Ok(()) => CommandResult::Output(format!("\x02Unloaded: {}", name)),
+        Err(msg) => CommandResult::Output(format!("\x03{}", msg)),
+    }
+}

@@ -19,7 +19,7 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     reki_os::init(boot_info);
 
     println!(
-        "Reki OS | Copyright (c) 2026 czeplenok -- MIT License\n{}",
+        "Reki OS | Copyright (c) 2026 Kirill P. -- MIT License\n{}",
         interpreter::fetch()
     );
 

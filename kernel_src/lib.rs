@@ -56,6 +56,8 @@ pub fn init(boot_info: &'static mut bootloader_api::BootInfo) {
         unsafe { memory::frame_allocator::BumpFrameAllocator::new(memory_regions) };
 
     memory::heap::init(&mut page_table, &mut frame_allocator);
+    drivers::timer::calibrate_tsc();
+    module::symbols::init();
     shell::shell::init(display::framebuffer::FrameBuffer::new(framebuffer));
 
     FRAME_ALLOCATOR.call_once(|| Mutex::new(frame_allocator));

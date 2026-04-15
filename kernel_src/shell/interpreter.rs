@@ -7,7 +7,6 @@ use core::arch::x86_64::__cpuid;
 use core::str;
 use x86_64::instructions::port::Port;
 
-
 pub enum CommandResult {
     Output(String),
     Clear,

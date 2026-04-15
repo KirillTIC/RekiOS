@@ -108,12 +108,12 @@ pub extern "C" fn kernel_pci_find_ahci(
         None => 0,
     }
 }
-//pub extern "C" fn kernel_tsc_now_ns() -> u64 {
-    //crate::drivers::timer::tsc_now_ns()          //TODO
-//}
-//pub extern "C" fn kernel_sleep_ms(ms: u64) {
-    //crate::drivers::timer::sleep_ms(ms);         //TODO
-//}
+pub extern "C" fn kernel_tsc_now_ns() -> u64 {
+    crate::drivers::timer::tsc_now_ns()
+}
+pub extern "C" fn kernel_sleep_ms(ms: u64) {
+    crate::drivers::timer::sleep_ms(ms);
+}
 
 #[allow(function_casts_as_integer)]
 pub fn init() {
@@ -128,8 +128,8 @@ pub fn init() {
     export("pci_read32", kernel_pci_read32 as usize);
     export("pci_write32", kernel_pci_write32  as usize);
     export("pci_find_ahci", kernel_pci_find_ahci as usize);
-    //export("tsc_now_ns", kernel_tsc_now_ns as usize); //TODO
-    //export("sleep_ms", kernel_sleep_ms as usize); //TODO
+    export("tsc_now_ns", kernel_tsc_now_ns as usize);
+    export("sleep_ms", kernel_sleep_ms as usize);
     export("ksym_export", ksym_export as usize);
     export("ksym_lookup", ksym_lookup as usize);
     crate::println!("ksyms: exported {} symbols", SYMBOLS.lock().len());

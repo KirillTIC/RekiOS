@@ -34,9 +34,17 @@ impl Shell {
             input_buffer: String::from(""),
             cursor_visible: true,
         };
+        shell.write_prompt();
         shell.render();
         shell.fb.swap();
         shell
+    }
+
+    fn write_prompt(&mut self) {
+        self.set_color(0, 255, 0);
+        self.write_char('>');
+        self.write_char(' ');
+        self.set_color(255, 255, 255);
     }
 
     pub fn write_char(&mut self, c: char) {
@@ -135,6 +143,8 @@ impl Shell {
                     let cmd = self.input_buffer.clone();
                     self.input_buffer.clear();
                     return Some(cmd);
+                } else {
+                    self.write_prompt();
                 }
             }
         }
@@ -152,10 +162,9 @@ impl Shell {
                 self.clear(0, 0, 0);
             }
             CommandResult::Spawned => {}
-            CommandResult::None => {
-                self.write_char('\n');
-            }
+            CommandResult::None => {}
         }
+        self.write_prompt();
     }
 
     pub fn flush(&mut self) {

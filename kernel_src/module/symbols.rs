@@ -115,6 +115,20 @@ pub extern "C" fn kernel_sleep_ms(ms: u64) {
     crate::drivers::timer::sleep_ms(ms);
 }
 
+// mem builtins needed by modules (core::ptr::copy_nonoverlapping etc.)
+unsafe extern "C" {
+    fn memcpy(dst: *mut u8, src: *const u8, n: usize) -> *mut u8;
+    fn memset(dst: *mut u8, c: i32, n: usize) -> *mut u8;
+    fn memmove(dst: *mut u8, src: *const u8, n: usize) -> *mut u8;
+    fn memcmp(a: *const u8, b: *const u8, n: usize) -> i32;
+}
+pub extern "C" fn kernel_strlen(s: *const u8) -> usize {
+    if s.is_null() { return 0; }
+    let mut n = 0usize;
+    unsafe { while *s.add(n) != 0 { n += 1; } }
+    n
+}
+
 #[allow(function_casts_as_integer)]
 pub fn init() {
     export("printk", kernel_printk as usize);
@@ -132,5 +146,12 @@ pub fn init() {
     export("sleep_ms", kernel_sleep_ms as usize);
     export("ksym_export", ksym_export as usize);
     export("ksym_lookup", ksym_lookup as usize);
+    export("strlen", kernel_strlen as usize);
+    unsafe {
+        export("memcpy",  memcpy  as *const () as usize);
+        export("memset",  memset  as *const () as usize);
+        export("memmove", memmove as *const () as usize);
+        export("memcmp",  memcmp  as *const () as usize);
+    }
     crate::println!("ksyms: exported {} symbols", SYMBOLS.lock().len());
 }

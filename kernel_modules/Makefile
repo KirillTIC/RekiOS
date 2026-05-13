@@ -1,4 +1,4 @@
-RUSTC   = rustc
+RUSTC   = /usr/bin/rustc
 
 RUSTFLAGS = \
     --edition 2021 \

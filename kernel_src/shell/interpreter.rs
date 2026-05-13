@@ -21,7 +21,7 @@ pub fn read(command: &String) -> CommandResult {
 
     match cmd {
         "help" => CommandResult::Output(format!(
-            "\x02Commands: help, echo, clear, fetch, calc, reboot, halt (Only QEMU/Bochs), lsmod, insmod, rmmod"
+            "\x02Commands: help, echo, clear, fetch, calc, reboot, halt (Only QEMU/Bochs), lsmod, insmod, rmmod, ls, cat, cd, pwd"
         )),
         "echo" => CommandResult::Output(args.join(" ")),
         "clear" => CommandResult::Clear,
@@ -36,6 +36,10 @@ pub fn read(command: &String) -> CommandResult {
         "lsmod" => lsmod(),
         "insmod" => insmod(args),
         "rmmod"  => rmmod(args),
+        "ls"     => ls_cmd(args),
+        "cat"    => cat_cmd(args),
+        "cd"     => cd_cmd(args),
+        "pwd"    => pwd_cmd(),
         _ => CommandResult::Output(format!("\x03Unkown command: {}", cmd)),
     }
 }
@@ -129,6 +133,8 @@ fn insmod(args: &[&str]) -> CommandResult {
     };
     let data: &[u8] = match *name {
         "hello" => include_bytes!("../../kernel_modules/hello/hello.km"),
+        "ahci"  => include_bytes!("../../kernel_modules/ahci/ahci.km"),
+        "ext2"  => include_bytes!("../../kernel_modules/ext2/ext2.km"),
         _ => return CommandResult::Output(format!("\x03insmod: unknown module '{}'", name)),
     };
     match crate::module::loader::insmod(data) {
@@ -136,7 +142,67 @@ fn insmod(args: &[&str]) -> CommandResult {
         Err(e) => CommandResult::Output(format!("\x03insmod: {}", e)),
     }
 }
-//TODO insmod() AFTER AHCI (replace with fs-based loading)
+fn ls_cmd(args: &[&str]) -> CommandResult {
+    let path = args.first().copied().unwrap_or(".");
+    let fn_ptr = crate::module::symbols::lookup("ext2_ls").unwrap_or(0);
+    if fn_ptr == 0 {
+        return CommandResult::Output(format!("\x03ext2 not loaded (insmod ext2)"));
+    }
+    let f: extern "C" fn(*const u8) = unsafe { core::mem::transmute(fn_ptr) };
+    let mut buf = alloc::vec![0u8; path.len() + 1];
+    buf[..path.len()].copy_from_slice(path.as_bytes());
+    f(buf.as_ptr());
+    CommandResult::None
+}
+fn cat_cmd(args: &[&str]) -> CommandResult {
+    let Some(path) = args.first() else {
+        return CommandResult::Output(format!("\x03cat <path>"));
+    };
+    let fn_ptr = crate::module::symbols::lookup("ext2_cat").unwrap_or(0);
+    if fn_ptr == 0 {
+        return CommandResult::Output(format!("\x03ext2 not loaded (insmod ext2)"));
+    }
+    let f: extern "C" fn(*const u8, *mut u8, usize) -> i64 =
+        unsafe { core::mem::transmute(fn_ptr) };
+    let mut path_buf = alloc::vec![0u8; path.len() + 1];
+    path_buf[..path.len()].copy_from_slice(path.as_bytes());
+    let mut out = alloc::vec![0u8; 65536];
+    let n = f(path_buf.as_ptr(), out.as_mut_ptr(), out.len());
+    if n < 0 {
+        return CommandResult::Output(format!("\x03cat: file not found or read error"));
+    }
+    match String::from_utf8(out[..n as usize].to_vec()) {
+        Ok(s)  => CommandResult::Output(s),
+        Err(_) => CommandResult::Output(format!("\x03cat: binary file ({} bytes)", n)),
+    }
+}
+fn cd_cmd(args: &[&str]) -> CommandResult {
+    let path = args.first().copied().unwrap_or("/");
+    let fn_ptr = crate::module::symbols::lookup("ext2_cd").unwrap_or(0);
+    if fn_ptr == 0 {
+        return CommandResult::Output(format!("\x03ext2 not loaded (insmod ext2)"));
+    }
+    let f: extern "C" fn(*const u8) -> i32 = unsafe { core::mem::transmute(fn_ptr) };
+    let mut buf = alloc::vec![0u8; path.len() + 1];
+    buf[..path.len()].copy_from_slice(path.as_bytes());
+    if f(buf.as_ptr()) != 0 {
+        return CommandResult::Output(format!("\x03cd: {}: no such directory", path));
+    }
+    CommandResult::None
+}
+fn pwd_cmd() -> CommandResult {
+    let fn_ptr = crate::module::symbols::lookup("ext2_cwd").unwrap_or(0);
+    if fn_ptr == 0 {
+        return CommandResult::Output(format!("\x03ext2 not loaded (insmod ext2)"));
+    }
+    let f: extern "C" fn(*mut u8, usize) -> usize = unsafe { core::mem::transmute(fn_ptr) };
+    let mut buf = alloc::vec![0u8; 256];
+    let n = f(buf.as_mut_ptr(), 256);
+    match core::str::from_utf8(&buf[..n]) {
+        Ok(s) => CommandResult::Output(format!("{}", s)),
+        Err(_) => CommandResult::Output(format!("\x03pwd: encoding error")),
+    }
+}
 fn rmmod(args: &[&str]) -> CommandResult {
     let Some(name) = args.first() else {
         return CommandResult::Output(format!("\x03rmmod <name>"));

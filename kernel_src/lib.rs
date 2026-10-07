@@ -1,6 +1,8 @@
 #![no_std]
 #![feature(abi_x86_interrupt)]
 
+extern crate alloc;
+
 use bootloader_api::info::MemoryRegions;
 use shell::shell::SHELL;
 use drivers::pci;

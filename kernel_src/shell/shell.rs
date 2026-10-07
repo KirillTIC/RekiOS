@@ -1,188 +1,99 @@
-extern crate alloc;
+use super::{
+    editor::LineEditor,
+    interpreter::{COMMANDS, CommandResult, MODULES},
+    terminal::Terminal,
+};
 use crate::display::framebuffer::FrameBuffer;
-use crate::display::psf_parser::Psf2Font;
-use crate::drivers::keyboard;
-use crate::shell::interpreter::CommandResult;
+use crate::drivers::{key::Key, keyboard};
 use alloc::string::String;
-use alloc::vec;
-use alloc::vec::Vec;
 use core::fmt;
 use lazy_static::lazy_static;
 use spin::Mutex;
 
-static FONT_DATA: &[u8] = include_bytes!("../../assets/fonts/default8x16.psfu");
-
 lazy_static! {
-    static ref FONT: Psf2Font = Psf2Font::new(FONT_DATA);
     pub static ref SHELL: Mutex<Option<Shell>> = Mutex::new(None);
 }
 
+/// Coordinates editing and command results. Rendering belongs to Terminal.
 pub struct Shell {
-    pub fb: FrameBuffer,
-    fg: (u8, u8, u8),
-    str_buffer: Vec<Vec<(char, (u8, u8, u8))>>,
-    input_buffer: String,
-    pub cursor_visible: bool,
+    terminal: Terminal,
+    editor: LineEditor,
+    accepting_input: bool,
 }
-
 impl Shell {
     pub fn new(fb: FrameBuffer) -> Self {
         let mut shell = Self {
-            fb,
-            fg: (255, 255, 255),
-            str_buffer: vec![vec![]],
-            input_buffer: String::from(""),
-            cursor_visible: true,
+            terminal: Terminal::new(fb),
+            editor: LineEditor::new(),
+            accepting_input: true,
         };
-        shell.write_prompt();
-        shell.render();
-        shell.fb.swap();
+        shell.flush();
         shell
     }
-
-    fn write_prompt(&mut self) {
-        self.set_color(0, 255, 0);
-        self.write_char('>');
-        self.write_char(' ');
-        self.set_color(255, 255, 255);
+    pub fn set_color(&mut self, r: u8, g: u8, b: u8) {
+        self.terminal.set_color((r, g, b));
     }
-
-    pub fn write_char(&mut self, c: char) {
-        match c {
-            '\n' => {
-                self.str_buffer.push(vec![]);
-            }
-            _ => {
-                let max_chars = self.fb.width() / FONT.width() as usize;
-                if let Some(last) = self.str_buffer.last() {
-                    if last.len() >= max_chars {
-                        self.str_buffer.push(vec![]);
+    pub fn clear(&mut self) {
+        self.terminal.clear();
+    }
+    pub fn cursor_update(&mut self) {
+        if self.accepting_input {
+            self.terminal.blink();
+        }
+    }
+    pub fn poll_command(&mut self) -> Option<String> {
+        if !self.accepting_input {
+            return None;
+        }
+        while let Some(key) = keyboard::pop_key() {
+            match key {
+                Key::Enter => {
+                    let command = self.editor.submit();
+                    self.terminal.commit_input(&command);
+                    self.terminal.input_changed();
+                    if !command.trim().is_empty() {
+                        self.accepting_input = false;
+                        return Some(command);
                     }
                 }
-                if let Some(line) = self.str_buffer.last_mut() {
-                    line.push((c, self.fg));
+                Key::Tab => {
+                    let matches = self.editor.complete(COMMANDS, MODULES);
+                    if !matches.is_empty() {
+                        self.terminal.commit_input(&self.editor.text());
+                        self.terminal.write(&matches.join("  "));
+                        self.terminal.write("\n");
+                    }
+                    self.terminal.input_changed();
                 }
-            }
-        }
-        self.fb.dirty = true;
-    }
-
-    fn render(&mut self) {
-        self.fb.clear(0, 0, 0);
-        let char_width = FONT.width() as usize;
-        let char_height = FONT.height() as usize;
-        let visible = self.fb.height() / char_height;
-        let start = if self.str_buffer.len() > visible {
-            self.str_buffer.len() - visible
-        } else {
-            0
-        };
-
-        for (i, line) in self.str_buffer.iter().skip(start).enumerate() {
-            let cursor_y = i * char_height;
-            for (j, (c, (r, g, b))) in line.iter().enumerate() {
-                let cursor_x = j * char_width;
-                self.fb
-                    .draw_glyph(&FONT, cursor_x, cursor_y, *c, *r, *g, *b);
-            }
-        }
-
-        if self.cursor_visible {
-            let x = self.str_buffer.last().map_or(0, |l| l.len()) * char_width;
-            let y = (self
-                .str_buffer
-                .len()
-                .saturating_sub(1)
-                .saturating_sub(start))
-                * char_height;
-            self.fb.draw_glyph(&FONT, x, y, '█', 255, 255, 255);
-        }
-    }
-
-    pub fn cursor_update(&mut self) {
-        self.cursor_visible = !self.cursor_visible;
-        self.fb.dirty = true;
-    }
-
-    pub fn puts(&mut self, s: String) {
-        for c in s.chars() {
-            match c {
-                '\x01' => self.set_color(255, 255, 255), // white
-                '\x02' => self.set_color(0, 255, 0),     // green
-                '\x03' => self.set_color(255, 0, 0),     // red
-                '\x04' => self.set_color(0, 0, 255),     // blue
-                '\x05' => self.set_color(255, 255, 0),   // yellow
-                '\x06' => self.set_color(0, 255, 255),   // cyan
-                '\x0B' => self.set_color(255, 0, 255),   // magenta
-                '\x0C' => self.set_color(255, 165, 0),   // orange
-                '\x0E' => self.set_color(192, 192, 192), // light gray
-                '\x0F' => self.set_color(128, 128, 128), // dark gray
-                _ => self.write_char(c),
-            }
-        }
-    }
-
-    pub fn set_color(&mut self, r: u8, g: u8, b: u8) {
-        self.fg = (r, g, b);
-    }
-
-    pub fn poll_command(&mut self) -> Option<String> {
-        if let Some(c) = keyboard::pop_key() {
-            if c != '\n' && c != 0x08 as char {
-                self.write_char(c);
-                self.input_buffer.push(c);
-            } else if c == 0x08 as char {
-                self.input_buffer.pop();
-                if let Some(line) = self.str_buffer.last_mut() {
-                    line.pop();
-                }
-                self.fb.dirty = true;
-            } else {
-                self.write_char('\n');
-                if !self.input_buffer.is_empty() {
-                    let cmd = self.input_buffer.clone();
-                    self.input_buffer.clear();
-                    return Some(cmd);
-                } else {
-                    self.write_prompt();
+                key => {
+                    self.editor.edit(key);
+                    self.terminal.input_changed();
                 }
             }
         }
         None
     }
-
     pub fn handle_result(&mut self, result: CommandResult) {
         match result {
             CommandResult::Output(s) => {
-                self.puts(s);
-                self.set_color(255, 255, 255);
-                self.write_char('\n');
+                self.terminal.write(&s);
+                self.terminal.write("\n");
             }
-            CommandResult::Clear => {
-                self.clear(0, 0, 0);
-            }
-            CommandResult::Spawned => {}
-            CommandResult::None => {}
+            CommandResult::Clear => self.terminal.clear(),
+            CommandResult::Spawned | CommandResult::None => {}
         }
-        self.write_prompt();
+        self.terminal.set_color((255, 255, 255));
+        self.accepting_input = true;
+        self.terminal.input_changed();
     }
-
     pub fn flush(&mut self) {
-        if self.fb.dirty {
-            self.render();
-            self.fb.swap();
-        }
-    }
-    pub fn clear(&mut self, r: u8, g: u8, b: u8) {
-        self.fb.clear(r, g, b);
-        self.str_buffer = vec![vec![]];
-        self.fb.dirty = true;
+        self.terminal
+            .flush(self.accepting_input.then_some(&self.editor));
     }
 }
-
 impl fmt::Write for Shell {
-    fn write_str(&mut self, s: &str) -> fmt::Result {
-        self.puts(String::from(s));
+    fn write_str(&mut self, text: &str) -> fmt::Result {
+        self.terminal.write(text);
         Ok(())
     }
 }
@@ -209,7 +120,7 @@ macro_rules! clear {
     () => {
         x86_64::instructions::interrupts::without_interrupts(|| {
             if let Some(shell) = $crate::shell::shell::SHELL.lock().as_mut() {
-                shell.clear(0, 0, 0);
+                shell.clear();
             }
         })
     };

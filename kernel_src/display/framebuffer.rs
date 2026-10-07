@@ -37,6 +37,9 @@ impl FrameBuffer {
         }
     }
     pub fn put_pixel(&mut self, x: usize, y: usize, r: u8, g: u8, b: u8) {
+        if x >= self.info.width || y >= self.info.height {
+            return;
+        }
         let offset =
             y * self.info.stride * self.info.bytes_per_pixel + x * self.info.bytes_per_pixel;
         match self.info.pixel_format {

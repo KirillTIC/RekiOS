@@ -7,6 +7,12 @@ use core::arch::x86_64::__cpuid;
 use core::str;
 use x86_64::instructions::port::Port;
 
+pub const COMMANDS: &[&str] = &[
+    "help", "echo", "clear", "fetch", "calc", "reboot", "halt",
+    "lsmod", "insmod", "rmmod", "ls", "cat", "cd", "pwd",
+];
+pub const MODULES: &[&str] = &["hello", "ahci", "ext2"];
+
 pub enum CommandResult {
     Output(String),
     Clear,
@@ -14,14 +20,16 @@ pub enum CommandResult {
     None,
 }
 
-pub fn read(command: &String) -> CommandResult {
+pub fn read(command: &str) -> CommandResult {
     let parts: Vec<&str> = command.split_whitespace().collect();
-    let cmd = parts[0];
+    let Some(&cmd) = parts.first() else {
+        return CommandResult::None;
+    };
     let args = &parts[1..];
 
     match cmd {
         "help" => CommandResult::Output(format!(
-            "\x02Commands: help, echo, clear, fetch, calc, reboot, halt (Only QEMU/Bochs), lsmod, insmod, rmmod, ls, cat, cd, pwd"
+            "\x02Commands: {}\n\x01Left/Right: move  Home/End: line edges  Backspace/Delete: erase\nUp/Down: history  Tab: complete command/module (ambiguous: list)\nhalt: QEMU/Bochs only", COMMANDS.join(", ")
         )),
         "echo" => CommandResult::Output(args.join(" ")),
         "clear" => CommandResult::Clear,
@@ -40,7 +48,7 @@ pub fn read(command: &String) -> CommandResult {
         "cat"    => cat_cmd(args),
         "cd"     => cd_cmd(args),
         "pwd"    => pwd_cmd(),
-        _ => CommandResult::Output(format!("\x03Unkown command: {}", cmd)),
+        _ => CommandResult::Output(format!("\x03Unknown command: {}", cmd)),
     }
 }
 
